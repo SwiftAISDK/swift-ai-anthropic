@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "package": "swift-ai-anthropic",
+  "status": "coarse-import",
+  "upstream": [
+    {
+      "name": "@ai-sdk/anthropic",
+      "implementation": [
+        "packages/anthropic/src"
+      ],
+      "tests": [
+        "packages/anthropic/src/anthropic-batch.test.ts",
+        "packages/anthropic/src/anthropic-decision.test.ts",
+        "packages/anthropic/src/anthropic-error.test.ts",
+        "packages/anthropic/src/anthropic-files.test.ts",
+        "packages/anthropic/src/anthropic-language-model.test.ts",
+        "packages/anthropic/src/anthropic-message-lifecycle.test.ts",
+        "packages/anthropic/src/anthropic-prepare-tools.test.ts",
+        "packages/anthropic/src/anthropic-provider.test.ts",
+        "packages/anthropic/src/anthropic-unknown-model-max-output-tokens.test.ts",
+        "packages/anthropic/src/convert-anthropic-usage.test.ts",
+        "packages/anthropic/src/convert-to-anthropic-prompt.test.ts",
+        "packages/anthropic/src/lazy-schemas.test.ts",
+        "packages/anthropic/src/sanitize-json-schema.test.ts",
+        "packages/anthropic/src/skills/anthropic-skills.test.ts",
+        "packages/anthropic/src/tool/bash_20241022.test.ts",
+        "packages/anthropic/src/tool/bash_20250124.test.ts"
+      ]
+    }
+  ],
+  "swift": {
+    "sources": [
+      "Sources/SwiftAIAnthropic/AnthropicBatchLanguageModel.swift",
+      "Sources/SwiftAIAnthropic/AnthropicConfiguration.swift",
+      "Sources/SwiftAIAnthropic/AnthropicFiles.swift",
+      "Sources/SwiftAIAnthropic/AnthropicModels.swift",
+      "Sources/SwiftAIAnthropic/AnthropicOptions.swift",
+      "Sources/SwiftAIAnthropic/AnthropicParsing.swift",
+      "Sources/SwiftAIAnthropic/AnthropicProvider.swift",
+      "Sources/SwiftAIAnthropic/AnthropicSkills.swift",
+      "Sources/SwiftAIAnthropic/AnthropicStreaming.swift",
+      "Sources/SwiftAIAnthropic/AnthropicToolPreparation.swift"
+    ],
+    "tests": [
+      "Tests/SwiftAIAnthropicTests/AnthropicBatchV4UpstreamTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicCallerMetadataUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicDeferredServerResultUpstreamTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicPDFAndCapabilitiesUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicPromptConversionUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedAdvisorUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedCodeExecutionUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedConnectorsUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedWebFetchUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedWebSearchUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicReasoningAndRequestMappingUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicSchemaUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicStreamingUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicStructuredOutputUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicToolDefinitionsUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicTransformAndMetadataUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicUpstreamParityTestSupport.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicUsageUpstreamParityTests.swift",
+      "Tests/SwiftAIAnthropicTests/FixtureDownloadTransport.swift",
+      "Tests/SwiftAIAnthropicTests/TestSupport.swift",
+      "Tests/SwiftAIAnthropicTests/WeeklyAnthropic20261023Tests.swift"
+    ],
+    "resources": []
+  },
+  "differences": [
+    {
+      "kind": "native-adaptation",
+      "reason": "Preserve Swift async/await, Sendable, Foundation transport and existing documented gaps; see Docs/CoreV6Parity.md and PortingStatus.md."
+    }
+  ],
+  "reviewNote": "Imported M0 file ownership and upstream test inventory. These are candidate relationships, not claims that every listed upstream test is ported; refine into behavior mappings during extraction.",
+  "canonicalOnlyReferences": [
+    {
+      "kind": "sources",
+      "path": "Sources/SwiftAISDK/Providers/AnthropicProvider.swift"
+    }
+  ],
+  "canonicalDirectory": "Packages/swift-ai-anthropic"
+}

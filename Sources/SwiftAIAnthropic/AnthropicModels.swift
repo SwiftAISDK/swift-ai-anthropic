@@ -1,0 +1,2142 @@
+import Foundation
+import SwiftAIProvider
+import SwiftAITransport
+import SwiftAIProviderUtilities
+
+
+public enum AnthropicTools {
+    public static func advisor_20260301(model: String, maxUses: Int? = nil, maxTokens: Int? = nil, caching: JSONValue? = nil) -> JSONValue {
+        providerTool(id: "anthropic.advisor_20260301", name: "advisor", args: JSONValue.object([
+            "model": .string(model),
+            "maxUses": maxUses.map { .number(Double($0)) },
+            "maxTokens": maxTokens.map { .number(Double($0)) },
+            "caching": caching
+        ]).objectValue ?? [:])
+    }
+
+    public static func bash_20241022() -> JSONValue {
+        providerTool(id: "anthropic.bash_20241022", name: "bash")
+    }
+
+    public static func bash_20250124() -> JSONValue {
+        providerTool(id: "anthropic.bash_20250124", name: "bash")
+    }
+
+    public static func codeExecution_20250522() -> JSONValue {
+        providerTool(id: "anthropic.code_execution_20250522", name: "code_execution")
+    }
+
+    public static func codeExecution_20250825() -> JSONValue {
+        providerTool(id: "anthropic.code_execution_20250825", name: "code_execution")
+    }
+
+    public static func codeExecution_20260120() -> JSONValue {
+        providerTool(id: "anthropic.code_execution_20260120", name: "code_execution")
+    }
+
+    public static func computer_20241022(displayWidthPx: Int, displayHeightPx: Int, displayNumber: Int? = nil) -> JSONValue {
+        computerTool(id: "anthropic.computer_20241022", displayWidthPx: displayWidthPx, displayHeightPx: displayHeightPx, displayNumber: displayNumber)
+    }
+
+    public static func computer_20250124(displayWidthPx: Int, displayHeightPx: Int, displayNumber: Int? = nil) -> JSONValue {
+        computerTool(id: "anthropic.computer_20250124", displayWidthPx: displayWidthPx, displayHeightPx: displayHeightPx, displayNumber: displayNumber)
+    }
+
+    public static func computer_20251124(displayWidthPx: Int, displayHeightPx: Int, displayNumber: Int? = nil, enableZoom: Bool? = nil) -> JSONValue {
+        providerTool(id: "anthropic.computer_20251124", name: "computer", args: JSONValue.object([
+            "displayWidthPx": .number(Double(displayWidthPx)),
+            "displayHeightPx": .number(Double(displayHeightPx)),
+            "displayNumber": displayNumber.map { .number(Double($0)) },
+            "enableZoom": enableZoom.map(JSONValue.bool)
+        ]).objectValue ?? [:])
+    }
+
+    public static func computerToolset_20260801(configs: [String: JSONValue]? = nil) -> JSONValue {
+        providerTool(
+            id: "anthropic.computer_toolset_20260801",
+            name: "computer",
+            args: configs.map { ["configs": .object($0)] } ?? [:]
+        )
+    }
+
+    public static func memory_20250818() -> JSONValue {
+        providerTool(id: "anthropic.memory_20250818", name: "memory")
+    }
+
+    public static func textEditor_20241022() -> JSONValue {
+        providerTool(id: "anthropic.text_editor_20241022", name: "str_replace_editor")
+    }
+
+    public static func textEditor_20250124() -> JSONValue {
+        providerTool(id: "anthropic.text_editor_20250124", name: "str_replace_editor")
+    }
+
+    public static func textEditor_20250429() -> JSONValue {
+        providerTool(id: "anthropic.text_editor_20250429", name: "str_replace_based_edit_tool")
+    }
+
+    public static func textEditor_20250728(maxCharacters: Int? = nil) -> JSONValue {
+        providerTool(id: "anthropic.text_editor_20250728", name: "str_replace_based_edit_tool", args: JSONValue.object([
+            "maxCharacters": maxCharacters.map { .number(Double($0)) }
+        ]).objectValue ?? [:])
+    }
+
+    public static func webFetch_20250910(maxUses: Int? = nil, allowedDomains: [String]? = nil, blockedDomains: [String]? = nil, citations: JSONValue? = nil, maxContentTokens: Int? = nil) -> JSONValue {
+        webTool(id: "anthropic.web_fetch_20250910", name: "web_fetch", maxUses: maxUses, allowedDomains: allowedDomains, blockedDomains: blockedDomains, citations: citations, maxContentTokens: maxContentTokens)
+    }
+
+    public static func webFetch_20260209(maxUses: Int? = nil, allowedDomains: [String]? = nil, blockedDomains: [String]? = nil, citations: JSONValue? = nil, maxContentTokens: Int? = nil) -> JSONValue {
+        webTool(id: "anthropic.web_fetch_20260209", name: "web_fetch", maxUses: maxUses, allowedDomains: allowedDomains, blockedDomains: blockedDomains, citations: citations, maxContentTokens: maxContentTokens)
+    }
+
+    public static func webFetch_20260318(
+        maxUses: Int? = nil,
+        allowedDomains: [String]? = nil,
+        blockedDomains: [String]? = nil,
+        citations: JSONValue? = nil,
+        maxContentTokens: Int? = nil,
+        useCache: Bool? = nil,
+        responseInclusion: String? = nil
+    ) -> JSONValue {
+        webTool(
+            id: "anthropic.web_fetch_20260318",
+            name: "web_fetch",
+            maxUses: maxUses,
+            allowedDomains: allowedDomains,
+            blockedDomains: blockedDomains,
+            citations: citations,
+            maxContentTokens: maxContentTokens,
+            useCache: useCache,
+            responseInclusion: responseInclusion,
+            inputSchema: anthropicWebFetch20260318InputSchema,
+            outputSchema: anthropicWebFetch20260318OutputSchema,
+            supportsDeferredResults: true
+        )
+    }
+
+    public static func webSearch_20250305(maxUses: Int? = nil, allowedDomains: [String]? = nil, blockedDomains: [String]? = nil, userLocation: JSONValue? = nil) -> JSONValue {
+        webTool(id: "anthropic.web_search_20250305", name: "web_search", maxUses: maxUses, allowedDomains: allowedDomains, blockedDomains: blockedDomains, userLocation: userLocation)
+    }
+
+    public static func webSearch_20260209(maxUses: Int? = nil, allowedDomains: [String]? = nil, blockedDomains: [String]? = nil, userLocation: JSONValue? = nil) -> JSONValue {
+        webTool(id: "anthropic.web_search_20260209", name: "web_search", maxUses: maxUses, allowedDomains: allowedDomains, blockedDomains: blockedDomains, userLocation: userLocation)
+    }
+
+    public static func webSearch_20260318(
+        maxUses: Int? = nil,
+        allowedDomains: [String]? = nil,
+        blockedDomains: [String]? = nil,
+        userLocation: JSONValue? = nil,
+        responseInclusion: String? = nil
+    ) -> JSONValue {
+        webTool(
+            id: "anthropic.web_search_20260318",
+            name: "web_search",
+            maxUses: maxUses,
+            allowedDomains: allowedDomains,
+            blockedDomains: blockedDomains,
+            userLocation: userLocation,
+            responseInclusion: responseInclusion,
+            inputSchema: anthropicWebSearch20260318InputSchema,
+            outputSchema: anthropicWebSearch20260318OutputSchema,
+            supportsDeferredResults: true
+        )
+    }
+
+    public static func toolSearchRegex_20251119() -> JSONValue {
+        providerTool(id: "anthropic.tool_search_regex_20251119", name: "tool_search_tool_regex")
+    }
+
+    public static func toolSearchBm25_20251119() -> JSONValue {
+        providerTool(id: "anthropic.tool_search_bm25_20251119", name: "tool_search_tool_bm25")
+    }
+
+    static func providerTool(
+        id: String,
+        name: String,
+        args: [String: JSONValue] = [:],
+        inputSchema: JSONValue? = nil,
+        outputSchema: JSONValue? = nil,
+        supportsDeferredResults: Bool = false
+    ) -> JSONValue {
+        var tool: [String: JSONValue] = [
+            "type": .string("provider"),
+            "id": .string(id),
+            "name": .string(name),
+            "args": .object(args)
+        ]
+        if let inputSchema { tool["inputSchema"] = inputSchema }
+        if let outputSchema { tool["outputSchema"] = outputSchema }
+        if supportsDeferredResults { tool["supportsDeferredResults"] = true }
+        return .object(tool)
+    }
+
+    private static func computerTool(id: String, displayWidthPx: Int, displayHeightPx: Int, displayNumber: Int?) -> JSONValue {
+        providerTool(id: id, name: "computer", args: JSONValue.object([
+            "displayWidthPx": .number(Double(displayWidthPx)),
+            "displayHeightPx": .number(Double(displayHeightPx)),
+            "displayNumber": displayNumber.map { .number(Double($0)) }
+        ]).objectValue ?? [:])
+    }
+
+    private static func webTool(
+        id: String,
+        name: String,
+        maxUses: Int?,
+        allowedDomains: [String]?,
+        blockedDomains: [String]?,
+        citations: JSONValue? = nil,
+        maxContentTokens: Int? = nil,
+        userLocation: JSONValue? = nil,
+        useCache: Bool? = nil,
+        responseInclusion: String? = nil,
+        inputSchema: JSONValue? = nil,
+        outputSchema: JSONValue? = nil,
+        supportsDeferredResults: Bool = false
+    ) -> JSONValue {
+        providerTool(id: id, name: name, args: JSONValue.object([
+            "maxUses": maxUses.map { .number(Double($0)) },
+            "allowedDomains": allowedDomains.map { .array($0.map(JSONValue.string)) },
+            "blockedDomains": blockedDomains.map { .array($0.map(JSONValue.string)) },
+            "citations": citations,
+            "maxContentTokens": maxContentTokens.map { .number(Double($0)) },
+            "userLocation": userLocation,
+            "useCache": useCache.map(JSONValue.bool),
+            "responseInclusion": responseInclusion.map(JSONValue.string)
+        ]).objectValue ?? [:], inputSchema: inputSchema, outputSchema: outputSchema, supportsDeferredResults: supportsDeferredResults)
+    }
+
+    private static let anthropicWebSearch20260318InputSchema: JSONValue = [
+        "type": "object",
+        "properties": ["query": ["type": "string"]],
+        "required": ["query"],
+        "additionalProperties": false
+    ]
+
+    private static let anthropicWebSearch20260318OutputSchema: JSONValue = [
+        "type": "array",
+        "items": [
+            "type": "object",
+            "properties": [
+                "url": ["type": "string"],
+                "title": ["type": ["string", "null"]],
+                "pageAge": ["type": ["string", "null"]],
+                "encryptedContent": ["type": "string"],
+                "type": ["const": "web_search_result"]
+            ],
+            "required": ["url", "title", "pageAge", "encryptedContent", "type"],
+            "additionalProperties": false
+        ]
+    ]
+
+    private static let anthropicWebFetch20260318InputSchema: JSONValue = [
+        "type": "object",
+        "properties": ["url": ["type": "string"]],
+        "required": ["url"],
+        "additionalProperties": false
+    ]
+
+    private static let anthropicWebFetch20260318OutputSchema: JSONValue = [
+        "type": "object",
+        "properties": [
+            "type": ["const": "web_fetch_result"],
+            "url": ["type": "string"],
+            "content": [
+                "type": "object",
+                "properties": [
+                    "type": ["const": "document"],
+                    "title": ["type": ["string", "null"]],
+                    "citations": [
+                        "type": "object",
+                        "properties": ["enabled": ["type": "boolean"]],
+                        "required": ["enabled"],
+                        "additionalProperties": false
+                    ],
+                    "source": [
+                        "anyOf": [
+                            [
+                                "type": "object",
+                                "properties": [
+                                    "type": ["const": "base64"],
+                                    "mediaType": ["const": "application/pdf"],
+                                    "data": ["type": "string"]
+                                ],
+                                "required": ["type", "mediaType", "data"],
+                                "additionalProperties": false
+                            ],
+                            [
+                                "type": "object",
+                                "properties": [
+                                    "type": ["const": "text"],
+                                    "mediaType": ["const": "text/plain"],
+                                    "data": ["type": "string"]
+                                ],
+                                "required": ["type", "mediaType", "data"],
+                                "additionalProperties": false
+                            ]
+                        ]
+                    ]
+                ],
+                "required": ["type", "title", "source"],
+                "additionalProperties": false
+            ],
+            "retrievedAt": ["type": ["string", "null"]]
+        ],
+        "required": ["type", "url", "content", "retrievedAt"],
+        "additionalProperties": false
+    ]
+}
+
+public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
+    public let providerID: String
+    public let modelID: String
+    public let supportedURLs: [String: [AISupportedURLPattern]]
+    private let config: AnthropicModelConfiguration
+    private let transformRequestHeaders: (@Sendable ([String: String], [String: JSONValue]) async throws -> [String: String])?
+    private static let providerToolNames: [String: String] = [
+        "anthropic.code_execution_20250522": "code_execution",
+        "anthropic.code_execution_20250825": "code_execution",
+        "anthropic.code_execution_20260120": "code_execution",
+        "anthropic.computer_20241022": "computer",
+        "anthropic.computer_20250124": "computer",
+        "anthropic.computer_20251124": "computer",
+        "anthropic.computer_toolset_20260801": "computer",
+        "anthropic.text_editor_20241022": "str_replace_editor",
+        "anthropic.text_editor_20250124": "str_replace_editor",
+        "anthropic.text_editor_20250429": "str_replace_based_edit_tool",
+        "anthropic.text_editor_20250728": "str_replace_based_edit_tool",
+        "anthropic.bash_20241022": "bash",
+        "anthropic.bash_20250124": "bash",
+        "anthropic.memory_20250818": "memory",
+        "anthropic.web_search_20250305": "web_search",
+        "anthropic.web_search_20260209": "web_search",
+        "anthropic.web_search_20260318": "web_search",
+        "anthropic.web_fetch_20250910": "web_fetch",
+        "anthropic.web_fetch_20260209": "web_fetch",
+        "anthropic.web_fetch_20260318": "web_fetch",
+        "anthropic.tool_search_regex_20251119": "tool_search_tool_regex",
+        "anthropic.tool_search_bm25_20251119": "tool_search_tool_bm25",
+        "anthropic.advisor_20260301": "advisor"
+    ]
+
+    public init(
+        modelID: String,
+        config: AnthropicModelConfiguration,
+        supportedURLs: [String: [AISupportedURLPattern]] = [
+            "image/*": [AISupportedURLPattern(anthropicSupportedHTTPURL)],
+            "application/pdf": [AISupportedURLPattern(anthropicSupportedHTTPURL)]
+        ],
+        transformRequestHeaders: (@Sendable ([String: String], [String: JSONValue]) async throws -> [String: String])? = nil
+    ) {
+        self.providerID = config.providerID
+        self.modelID = modelID
+        self.config = config
+        self.supportedURLs = supportedURLs
+        self.transformRequestHeaders = transformRequestHeaders
+    }
+
+    public func generate(_ request: LanguageModelRequest) async throws -> TextGenerationResult {
+        let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, policy: config.requestPolicy?(modelID) ?? .init())
+        var body = preparedRequest.body
+        body["stream"] = nil
+        let path: String
+        if providerID == "googleVertex.anthropic.messages" {
+            body.removeValue(forKey: "model")
+            body["anthropic_version"] = .string("vertex-2023-10-16")
+            path = "/\(modelID):rawPredict"
+        } else {
+            path = "/messages"
+        }
+        body = config.transformRequestBody?(body) ?? body
+        var httpRequest = try config.request(
+            path: path,
+            modelID: modelID,
+            body: .object(body),
+            headers: anthropicHeaders(request.headers, configHeaders: config.headers, betas: preparedRequest.betas),
+            abortSignal: request.abortSignal
+        )
+        if let transformRequestHeaders {
+            httpRequest.headers = try await transformRequestHeaders(httpRequest.headers, request.providerOptions)
+        }
+        let response = try await config.transport.send(httpRequest)
+        guard (200..<300).contains(response.statusCode) else {
+            throw anthropicHTTPStatusError(provider: providerID, response: response)
+        }
+        let raw = try response.jsonValue()
+        try anthropicValidateFallbackContent(raw["content"], providerID: providerID)
+        let generatedContent = anthropicGeneratedContent(
+            from: raw["content"],
+            providerID: providerID,
+            citationDocuments: anthropicCitationDocuments(from: request.messages),
+            usesJSONToolResponseFormat: preparedRequest.usesJSONToolResponseFormat,
+            toolNameMapping: preparedRequest.toolNameMapping,
+            markCodeExecutionDynamic: preparedRequest.markCodeExecutionDynamic
+        )
+        guard let text = generatedContent.text else {
+            throw AIError.invalidResponse(provider: providerID, message: "No text block found in Anthropic response.")
+        }
+        return TextGenerationResult(
+            text: text,
+            content: generatedContent.content,
+            reasoning: generatedContent.reasoning,
+            finishReason: anthropicFinishReason(raw["stop_reason"]?.stringValue, toolCalls: generatedContent.toolCalls),
+            usage: anthropicTokenUsage(from: raw["usage"]),
+            toolCalls: generatedContent.toolCalls,
+            toolResults: generatedContent.toolResults,
+            sources: generatedContent.sources,
+            providerMetadata: anthropicProviderMetadata(from: raw, providerID: providerID, requestProviderOptions: preparedRequest.providerOptions),
+            rawValue: raw,
+            warnings: preparedRequest.warnings,
+            responseMetadata: aiResponseMetadata(from: raw, response: response, modelID: modelID)
+        )
+    }
+
+    public func stream(_ request: LanguageModelRequest) -> AsyncThrowingStream<LanguageStreamPart, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, stream: true, policy: config.requestPolicy?(modelID) ?? .init())
+                    var body = preparedRequest.body
+                    let path: String
+                    if providerID == "googleVertex.anthropic.messages" {
+                        body.removeValue(forKey: "model")
+                        body["anthropic_version"] = .string("vertex-2023-10-16")
+                        path = "/\(modelID):streamRawPredict"
+                    } else {
+                        path = "/messages"
+                    }
+                    body = config.transformRequestBody?(body) ?? body
+                    var httpRequest = try config.request(
+                        path: path,
+                        modelID: modelID,
+                        body: .object(body),
+                        headers: anthropicHeaders(request.headers, configHeaders: config.headers, betas: preparedRequest.betas),
+                        abortSignal: request.abortSignal
+                    )
+                    if let transformRequestHeaders {
+                        httpRequest.headers = try await transformRequestHeaders(httpRequest.headers, request.providerOptions)
+                    }
+                    let response = try await config.streamRequest(httpRequest)
+                    guard (200..<300).contains(response.statusCode) else {
+                        throw anthropicHTTPStatusError(
+                            provider: providerID,
+                            response: try await bufferedHTTPResponse(from: response, request: httpRequest)
+                        )
+                    }
+                    let responseHead = httpResponseHead(from: response, request: httpRequest)
+                    var hasUnfinishedOutput = false
+                    var hasStreamError = false
+                    var lastFinishUsage: TokenUsage?
+                    var lastFinishMetadata: [String: JSONValue] = [:]
+                    func emit(_ part: LanguageStreamPart) {
+                        switch part {
+                        case let .textDelta(delta), let .reasoningDelta(delta),
+                             let .textDeltaPart(_, delta, _), let .reasoningDeltaPart(_, delta, _),
+                             let .toolInputDelta(_, delta, _):
+                            hasUnfinishedOutput = hasUnfinishedOutput || !delta.isEmpty
+                        case .toolCall:
+                            hasUnfinishedOutput = true
+                        case .error:
+                            hasStreamError = true
+                        case let .finishMetadata(_, usage, metadata):
+                            hasUnfinishedOutput = false
+                            lastFinishUsage = usage
+                            lastFinishMetadata = metadata
+                        default:
+                            break
+                        }
+                        continuation.yield(part)
+                    }
+                    emit(.responseMetadata(aiResponseMetadata(response: responseHead, modelID: modelID)))
+                    emit(.streamStart(warnings: preparedRequest.warnings))
+                    var contentBlocks = AnthropicStreamingContentBlocks(
+                        providerID: providerID,
+                        ignoresTextBlocks: preparedRequest.usesJSONToolResponseFormat
+                    )
+                    var jsonToolText = AnthropicStreamingJSONToolText()
+                    var providerToolResults = AnthropicStreamingProviderToolResults(
+                        providerID: providerID,
+                        toolNameMapping: preparedRequest.toolNameMapping
+                    )
+                    var toolCalls = AnthropicStreamingToolCalls(
+                        providerID: providerID,
+                        toolNameMapping: preparedRequest.toolNameMapping,
+                        markCodeExecutionDynamic: preparedRequest.markCodeExecutionDynamic
+                    )
+                    var realToolCallCount = 0
+                    var streamingSources = AnthropicStreamingSources(citationDocuments: anthropicCitationDocuments(from: request.messages))
+                    var finishReason: String?
+                    var finishUsage: TokenUsage?
+                    var rawUsage: JSONValue?
+                    var stopSequence: JSONValue = .null
+                    var stopDetails: JSONValue = .null
+                    var container: JSONValue = .null
+                    var contextManagement: JSONValue = .null
+                    var inputTransformations: JSONValue = .null
+                    var safeguardResults: JSONValue = .null
+                    var didReceiveMessageStart = false
+                    var isMessageOpen = false
+                    var activeMessageID: String?
+                    streamEvents: for try await event in serverSentEvents(from: response.body) {
+                        if event.data == "[DONE]" { break }
+                        let raw = try decodeJSONBody(Data(event.data.utf8))
+                        try anthropicValidateFallbackEvent(raw, providerID: providerID)
+                        if request.includeRawChunks {
+                            emit(.raw(raw))
+                        }
+                        if let providerError = anthropicStreamProviderError(from: raw) {
+                            if didReceiveMessageStart {
+                                emit(.providerError(providerError))
+                                for part in contentBlocks.finishParts(citationDocuments: streamingSources.citationDocuments) {
+                                    emit(part)
+                                }
+                                for part in jsonToolText.finishParts() {
+                                    emit(part)
+                                }
+                                emit(.finishMetadata(
+                                    reason: "error",
+                                    usage: finishUsage,
+                                    providerMetadata: anthropicProviderMetadata(
+                                        usage: rawUsage,
+                                        stopSequence: stopSequence,
+                                        stopDetails: stopDetails,
+                                        container: container,
+                                        contextManagement: contextManagement,
+                                        inputTransformations: inputTransformations,
+                                        safeguardResults: safeguardResults,
+                                        providerID: providerID,
+                                        requestProviderOptions: preparedRequest.providerOptions
+                                    )
+                                ))
+                                break
+                            }
+                            throw anthropicStreamError(from: raw, provider: providerID, headers: response.headers)
+                                ?? AIError.invalidResponse(provider: providerID, message: providerError.message)
+                        }
+                        switch raw["type"]?.stringValue {
+                        case "message_start":
+                            let messageID = raw["message"]?["id"]?.stringValue
+                            if isMessageOpen {
+                                if activeMessageID == messageID {
+                                    continue
+                                }
+                                let incomingID = messageID.map { anthropicJSONString(.string($0)) ?? "\"\($0)\"" } ?? "null"
+                                let activeID = activeMessageID.map { anthropicJSONString(.string($0)) ?? "\"\($0)\"" } ?? "null"
+                                emit(.error(
+                                    message: "Received message_start for message \(incomingID) while message \(activeID) is still open.",
+                                    rawValue: raw
+                                ))
+                                break streamEvents
+                            }
+                            hasUnfinishedOutput = false
+                            finishReason = nil
+                            isMessageOpen = true
+                            activeMessageID = messageID
+                            didReceiveMessageStart = true
+                            if let usage = raw["message"]?["usage"] {
+                                rawUsage = usage
+                                finishUsage = anthropicTokenUsage(from: usage)
+                            }
+                            emit(.custom(
+                                ["kind": "anthropic.message_start"],
+                                providerMetadata: ["anthropic": .object([
+                                    "id": raw["message"]?["id"] ?? .null,
+                                    "model": raw["message"]?["model"] ?? .null,
+                                    "usage": rawUsage ?? .null
+                                ])]
+                            ))
+                            if let value = anthropicContainerMetadata(from: raw["message"]?["container"]) {
+                                container = value
+                            }
+                            if let value = raw["message"]?["input_transformations"], value != .null {
+                                inputTransformations = value
+                            }
+                            if let reason = raw["message"]?["stop_reason"]?.stringValue {
+                                finishReason = anthropicFinishReason(reason, toolCallCount: realToolCallCount)
+                            }
+                        case "message_delta":
+                            finishReason = anthropicFinishReason(raw["delta"]?["stop_reason"]?.stringValue, toolCallCount: realToolCallCount)
+                            stopSequence = raw["delta"]?["stop_sequence"] ?? stopSequence
+                            stopDetails = anthropicStopDetailsMetadata(from: raw["delta"]?["stop_details"]) ?? stopDetails
+                            if let usage = raw["usage"] {
+                                rawUsage = rawUsage.map { anthropicMergedUsage($0, usage) } ?? usage
+                                finishUsage = anthropicTokenUsage(from: rawUsage)
+                            }
+                            if let value = anthropicContainerMetadata(from: raw["delta"]?["container"]) {
+                                container = value
+                            }
+                            if let value = anthropicContextManagementMetadata(from: raw["context_management"]) {
+                                contextManagement = value
+                            }
+                            if let value = raw["input_transformations"], value != .null {
+                                inputTransformations = value
+                            }
+                            if let value = raw["delta"]?["safeguard_results"], value != .null {
+                                safeguardResults = value
+                            }
+                        case "message_stop":
+                            isMessageOpen = false
+                            activeMessageID = nil
+                        default:
+                            break
+                        }
+                        for part in toolCalls.apply(messageStartContent: raw["message"]?["content"]) {
+                            if case .toolCall = part {
+                                realToolCallCount += 1
+                            }
+                            emit(part)
+                        }
+                        for part in contentBlocks.apply(event: raw, citationDocuments: streamingSources.citationDocuments) {
+                            emit(part)
+                        }
+                        for part in jsonToolText.apply(event: raw) {
+                            emit(part)
+                        }
+                        for part in providerToolResults.apply(event: raw) {
+                            emit(part)
+                        }
+                        for source in streamingSources.apply(event: raw) {
+                            emit(.source(source))
+                        }
+                        for part in toolCalls.apply(event: raw) {
+                            if case .toolCall = part {
+                                realToolCallCount += 1
+                            }
+                            emit(part)
+                        }
+                        if raw["type"]?.stringValue == "message_stop" {
+                            for source in streamingSources.finishSources() {
+                                emit(.source(source))
+                            }
+                            for part in contentBlocks.finishParts(citationDocuments: streamingSources.citationDocuments) {
+                                emit(part)
+                            }
+                            for part in jsonToolText.finishParts() {
+                                emit(part)
+                            }
+                            emit(.finishMetadata(
+                                reason: finishReason ?? "other",
+                                usage: finishUsage,
+                                providerMetadata: anthropicProviderMetadata(
+                                    usage: rawUsage,
+                                    stopSequence: stopSequence,
+                                    stopDetails: stopDetails,
+                                    container: container,
+                                    contextManagement: contextManagement,
+                                    inputTransformations: inputTransformations,
+                                    safeguardResults: safeguardResults,
+                                    providerID: providerID,
+                                    requestProviderOptions: preparedRequest.providerOptions
+                                )
+                            ))
+                            // The native API owns one logical Messages response.
+                            // End at its semantic boundary even if the HTTP body
+                            // remains open; consuming later messages requires a
+                            // distinct session contract.
+                            break streamEvents
+                        }
+                    }
+                    if hasUnfinishedOutput, !hasStreamError {
+                        for part in contentBlocks.finishParts(citationDocuments: streamingSources.citationDocuments) { emit(part) }
+                        for part in jsonToolText.finishParts() { emit(part) }
+                        emit(.finishMetadata(reason: "interrupted", usage: lastFinishUsage, providerMetadata: lastFinishMetadata))
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    public static func body(
+        for request: LanguageModelRequest,
+        modelID: String,
+        providerID: String,
+        stream: Bool = false,
+        supportsNativeStructuredOutput: Bool? = nil,
+        supportsStrictTools: Bool? = nil,
+        policy: AnthropicRequestPolicy = .init()
+    ) throws -> AnthropicPreparedCall {
+        var betas: [String] = []
+        var warnings = anthropicStandardWarnings(for: request)
+        var reasoningWarnings: [AIWarning] = []
+        let request = try policy.prepareRequest?(request, modelID, &reasoningWarnings) ?? request
+        let providerOptions = try anthropicOptions(from: request, providerID: providerID)
+        let toolNameMapping = createToolNameMapping(
+            tools: request.tools,
+            providerToolNames: Self.providerToolNames
+        )
+        let prompt = try Self.promptMessages(
+            from: request.messages,
+            providerID: providerID,
+            sendReasoning: providerOptions.sendReasoning ?? true,
+            toolNameMapping: toolNameMapping,
+            policy: policy,
+            betas: &betas,
+            warnings: &warnings
+        )
+
+        let capabilities = anthropicModelCapabilities(modelID)
+        if request.maxOutputTokens == nil, !capabilities.isKnownModel {
+            warnings.append(AIWarning(
+                type: "compatibility",
+                feature: "maxOutputTokens",
+                message: "The model \"\(modelID)\" is unknown. The max output tokens have been limited to \(capabilities.maxOutputTokens). Set maxOutputTokens explicitly to override this limit."
+            ))
+        }
+        let sampling = anthropicSamplingParameters(
+            for: request,
+            modelID: modelID,
+            capabilities: capabilities,
+            maxTemperature: policy.maximumTemperature,
+            temperatureProvider: policy.metadataNamespace,
+            warnings: &warnings
+        )
+        var body: [String: JSONValue] = [
+            "model": .string(modelID),
+            "messages": .array(prompt.messages),
+            "max_tokens": .number(Double(request.maxOutputTokens ?? capabilities.maxOutputTokens))
+        ]
+        if stream { body["stream"] = true }
+        if !prompt.system.isEmpty { body["system"] = .array(prompt.system) }
+        if let temperature = sampling.temperature { body["temperature"] = .number(temperature) }
+        if let topK = sampling.topK { body["top_k"] = .number(Double(topK)) }
+        if let topP = sampling.topP { body["top_p"] = .number(topP) }
+        if !request.stopSequences.isEmpty { body["stop_sequences"] = .array(request.stopSequences) }
+        let supportsStructuredOutput = capabilities.supportsStructuredOutput
+            && (supportsNativeStructuredOutput ?? true)
+        let supportsStrictToolDefinitions = capabilities.supportsStructuredOutput
+            && (supportsStrictTools ?? true)
+        let eagerInputStreaming = stream && (providerOptions.toolStreaming ?? true)
+        body.merge(providerOptions.body) { _, new in new }
+        if body["context_management"] != nil, body["compaction"] != nil {
+            throw AIError.invalidArgument(
+                argument: "providerOptions",
+                message: "Anthropic provider options `compaction` and `contextManagement` cannot be used together."
+            )
+        }
+        anthropicApplyTopLevelReasoning(
+            request.reasoning,
+            to: &body,
+            modelID: modelID,
+            capabilities: capabilities,
+            warnings: &warnings
+        )
+        anthropicNormalizeThinkingForCapabilities(
+            in: &body,
+            modelID: modelID,
+            capabilities: capabilities,
+            warnings: &warnings
+        )
+        anthropicApplyDisabledThinkingEffortLimit(
+            to: &body,
+            modelID: modelID,
+            capabilities: capabilities,
+            warnings: &warnings
+        )
+        let usesJSONResponseTool: Bool
+        if case let .json(schema, _, _) = request.responseFormat, schema != nil {
+            usesJSONResponseTool = providerOptions.structuredOutputMode != "outputFormat"
+                && (providerOptions.structuredOutputMode == "jsonTool" || !supportsStructuredOutput)
+                && !(capabilities.rejectsForcedToolUse && supportsStructuredOutput)
+        } else {
+            usesJSONResponseTool = false
+        }
+        let preparedTools = try anthropicPrepareTools(
+            from: request.tools,
+            toolChoice: usesJSONResponseTool ? nil : (request.toolChoice ?? providerOptions.toolChoice),
+            disableParallelToolUse: providerOptions.disableParallelToolUse,
+            supportsStructuredOutput: usesJSONResponseTool ? false : supportsStructuredOutput,
+            supportsStrictTools: supportsStrictToolDefinitions,
+            defaultEagerInputStreaming: eagerInputStreaming,
+            rejectsForcedToolUse: capabilities.rejectsForcedToolUse || body["thinking"]?["type"]?.stringValue == "enabled",
+            cacheNamespace: policy.metadataNamespace,
+            initialCacheBreakpointCount: prompt.cacheBreakpointCount
+        )
+        if !preparedTools.tools.isEmpty {
+            body["tools"] = .array(preparedTools.tools)
+        }
+        if let toolChoice = preparedTools.toolChoice {
+            body["tool_choice"] = toolChoice
+        }
+        warnings.append(contentsOf: preparedTools.warnings)
+        let usesJSONToolResponseFormat = anthropicApplyResponseFormat(
+            request.responseFormat,
+            to: &body,
+            supportsStructuredOutput: supportsStructuredOutput,
+            structuredOutputMode: providerOptions.structuredOutputMode,
+            rejectsForcedToolUse: capabilities.rejectsForcedToolUse,
+            modelID: modelID,
+            disableParallelToolUse: providerOptions.disableParallelToolUse,
+            eagerInputStreaming: eagerInputStreaming,
+            warnings: &warnings
+        )
+        applyAnthropicThinkingRules(
+            to: &body,
+            requestedMaxTokens: request.maxOutputTokens,
+            requestTemperature: sampling.temperature,
+            requestTopP: sampling.topP,
+            isAnthropicModel: capabilities.isKnownModel || modelID.contains("claude-"),
+            supportsTemperatureAndTopPWithThinking: policy.supportsSamplingWithThinking,
+            warnings: &warnings
+        )
+        anthropicApplyMaxTokenLimit(
+            to: &body,
+            modelID: modelID,
+            requestedMaxTokens: request.maxOutputTokens,
+            capabilities: capabilities,
+            warnings: &warnings
+        )
+        if anthropicContainerHasSkills(body), !preparedTools.hasCodeExecution {
+            warnings.append(AIWarning(
+                type: "other",
+                message: "code execution tool is required when using skills"
+            ))
+        }
+        for beta in providerOptions.betas where !betas.contains(beta) {
+            betas.append(beta)
+        }
+        for beta in preparedTools.betas where !betas.contains(beta) {
+            betas.append(beta)
+        }
+        warnings.append(contentsOf: reasoningWarnings)
+        return AnthropicPreparedCall(
+            body: body,
+            betas: betas,
+            warnings: warnings,
+            usesJSONToolResponseFormat: usesJSONToolResponseFormat,
+            toolNameMapping: toolNameMapping,
+            markCodeExecutionDynamic: anthropicHasDynamicFilteringWebToolWithoutCodeExecution(
+                preparedTools.tools
+            ),
+            providerOptions: request.providerOptions
+        )
+    }
+
+    private static func promptMessages(
+        from messages: [AIMessage],
+        providerID: String,
+        sendReasoning: Bool,
+        toolNameMapping: AIToolNameMapping,
+        policy: AnthropicRequestPolicy = .init(),
+        betas: inout [String],
+        warnings: inout [AIWarning]
+    ) throws -> (system: [JSONValue], messages: [JSONValue], cacheBreakpointCount: Int) {
+        let cacheNamespace = policy.metadataNamespace
+        var sawConversationMessage = false
+        var cacheBreakpointCount = 0
+        var system: [JSONValue] = []
+        var conversation: [JSONValue] = []
+        var lastUserMessageIndex = -1
+        var warnedAboutInitialToolChanges = false
+        for message in messages {
+            let toolChanges = message.role == .system
+                ? anthropicToolChanges(from: message.providerMetadata)
+                : []
+            let systemOptions = message.role == .system
+                ? anthropicSystemMessageOptions(from: message.providerMetadata)
+                : (clearAt: nil, effort: nil)
+            if message.role == .system, !sawConversationMessage {
+                if !toolChanges.isEmpty, !warnedAboutInitialToolChanges {
+                    warnings.append(AIWarning(
+                        type: "other",
+                        message: "tool changes on the initial system message are not supported by Anthropic. Configure the initial tool set via the tools option instead. The tool changes have been ignored."
+                    ))
+                    warnedAboutInitialToolChanges = true
+                }
+                let text = message.combinedText
+                if let effort = systemOptions.effort,
+                   systemOptions.clearAt == nil,
+                   toolChanges.isEmpty,
+                   text.isEmpty {
+                    if !betas.contains("mid-conversation-output-config-2026-07-01") {
+                        betas.append("mid-conversation-output-config-2026-07-01")
+                    }
+                    conversation.append(.object([
+                        "role": .string("system"),
+                        "content": .array([] as [JSONValue]),
+                        "output_config": .object(["effort": .string(effort)])
+                    ]))
+                    continue
+                }
+                if systemOptions.clearAt != nil || systemOptions.effort != nil {
+                    warnings.append(AIWarning(
+                        type: "other",
+                        message: "clearAt and effort on this initial system message are not supported by Anthropic. Use a separate effort-only system message with empty content to set effort. These options have been ignored."
+                    ))
+                }
+                if !text.isEmpty || (toolChanges.isEmpty && systemOptions.clearAt == nil && systemOptions.effort == nil) {
+                    var block: [String: JSONValue] = ["type": .string("text"), "text": .string(text)]
+                    anthropicApplyCacheControl(
+                        anthropicCacheControl(from: message.providerMetadata, namespace: cacheNamespace),
+                        to: &block,
+                        cacheBreakpointCount: &cacheBreakpointCount,
+                        warnings: &warnings
+                    )
+                    system.append(.object(block))
+                }
+                continue
+            }
+            sawConversationMessage = true
+            if message.role == .system {
+                if !betas.contains("mid-conversation-system-2026-04-07") {
+                    betas.append("mid-conversation-system-2026-04-07")
+                }
+                if !toolChanges.isEmpty, !betas.contains("mid-conversation-tool-changes-2026-07-01") {
+                    betas.append("mid-conversation-tool-changes-2026-07-01")
+                }
+                if systemOptions.clearAt != nil,
+                   !betas.contains("mid-conversation-system-clear-at-2026-08-21") {
+                    betas.append("mid-conversation-system-clear-at-2026-08-21")
+                }
+                if systemOptions.effort != nil,
+                   !betas.contains("mid-conversation-output-config-2026-07-01") {
+                    betas.append("mid-conversation-output-config-2026-07-01")
+                }
+            }
+            var converted = try messageJSON(
+                message,
+                providerID: providerID,
+                sendReasoning: sendReasoning,
+                toolNameMapping: toolNameMapping,
+                policy: policy,
+                betas: &betas,
+                warnings: &warnings,
+                cacheBreakpointCount: &cacheBreakpointCount,
+                applyMessageCacheControl: message.role != .system
+                    || toolChanges.isEmpty
+                    || !message.combinedText.isEmpty
+            )
+            if message.role == .system, !toolChanges.isEmpty {
+                converted = anthropicAppendingToolChanges(
+                    toolChanges,
+                    to: converted,
+                    toolNameMapping: toolNameMapping
+                )
+            }
+            if message.role == .system,
+               systemOptions.clearAt != nil || systemOptions.effort != nil {
+                converted = anthropicApplyingSystemMessageOptions(
+                    systemOptions,
+                    to: converted
+                )
+            }
+            if message.role == .assistant,
+               converted["content"]?.arrayValue?.isEmpty == true {
+                continue
+            }
+            if message.role == .user, !message.content.isEmpty {
+                lastUserMessageIndex = conversation.last?["role"]?.stringValue == "user" ? conversation.count - 1 : conversation.count
+            }
+            appendAnthropicMessage(
+                converted,
+                to: &conversation
+            )
+        }
+        anthropicNormalizeHistoricalCallers(in: &conversation, before: lastUserMessageIndex, warnings: &warnings)
+        trimTrailingAssistantWhitespace(in: &conversation)
+        return (system, conversation, cacheBreakpointCount)
+    }
+
+    private static func anthropicToolChanges(
+        from providerMetadata: [String: JSONValue]
+    ) -> [(type: String, toolName: String)] {
+        (providerMetadata["anthropic"]?["toolChanges"]?.arrayValue ?? []).compactMap { change in
+            guard let type = change["type"]?.stringValue,
+                  type == "tool_addition" || type == "tool_removal",
+                  let toolName = change["toolName"]?.stringValue else {
+                return nil
+            }
+            return (type: type, toolName: toolName)
+        }
+    }
+
+    private static func anthropicSystemMessageOptions(
+        from providerMetadata: [String: JSONValue]
+    ) -> (clearAt: String?, effort: String?) {
+        let options = providerMetadata["anthropic"]
+        let clearAt = options?["clearAt"]?.stringValue == "next_user_message"
+            ? "next_user_message"
+            : nil
+        let effort = options?["effort"]?.stringValue.flatMap { value in
+            ["low", "medium", "high", "xhigh", "max"].contains(value)
+                ? value
+                : nil
+        }
+        return (clearAt, effort)
+    }
+
+    private static func anthropicApplyingSystemMessageOptions(
+        _ options: (clearAt: String?, effort: String?),
+        to message: JSONValue
+    ) -> JSONValue {
+        guard var object = message.objectValue else { return message }
+        if options.clearAt != nil || options.effort != nil {
+            var content = object["content"]?.arrayValue ?? []
+            content.removeAll {
+                $0["type"]?.stringValue == "text" && $0["text"]?.stringValue == ""
+            }
+            object["content"] = .array(content)
+        }
+        if let clearAt = options.clearAt {
+            object["clear_at"] = .string(clearAt)
+        }
+        if let effort = options.effort {
+            var outputConfig = object["output_config"]?.objectValue ?? [:]
+            outputConfig["effort"] = .string(effort)
+            object["output_config"] = .object(outputConfig)
+        }
+        return .object(object)
+    }
+
+    private static func anthropicAppendingToolChanges(
+        _ toolChanges: [(type: String, toolName: String)],
+        to message: JSONValue,
+        toolNameMapping: AIToolNameMapping
+    ) -> JSONValue {
+        guard var object = message.objectValue else {
+            return message
+        }
+        var content = object["content"]?.arrayValue ?? []
+        content.removeAll {
+            $0["type"]?.stringValue == "text" && $0["text"]?.stringValue == ""
+        }
+        content.append(contentsOf: toolChanges.map { change in
+            .object([
+                "type": .string(change.type),
+                "tool": .object([
+                    "type": .string("tool_reference"),
+                    "name": .string(toolNameMapping.toProviderToolName(change.toolName))
+                ])
+            ])
+        })
+        object["content"] = .array(content)
+        return .object(object)
+    }
+
+    private static func appendAnthropicMessage(_ message: JSONValue, to conversation: inout [JSONValue]) {
+        let role = message["role"]?.stringValue
+        guard role == "user" || role == "assistant",
+              let last = conversation.last,
+              last["role"]?.stringValue == role,
+              var lastObject = last.objectValue else {
+            conversation.append(message)
+            return
+        }
+        let mergedContent = (last["content"]?.arrayValue ?? []) + (message["content"]?.arrayValue ?? [])
+        lastObject["content"] = .array(mergedContent)
+        conversation[conversation.count - 1] = .object(lastObject)
+    }
+
+    private static func trimTrailingAssistantWhitespace(in conversation: inout [JSONValue]) {
+        guard let last = conversation.last,
+              last["role"]?.stringValue == "assistant",
+              var message = last.objectValue,
+              var content = message["content"]?.arrayValue,
+              var lastPart = content.last?.objectValue,
+              lastPart["type"]?.stringValue == "text",
+              let text = lastPart["text"]?.stringValue else {
+            return
+        }
+        lastPart["text"] = .string(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        content[content.count - 1] = .object(lastPart)
+        message["content"] = .array(content)
+        conversation[conversation.count - 1] = .object(message)
+    }
+
+    private static func messageJSON(
+        _ message: AIMessage,
+        providerID: String,
+        sendReasoning: Bool,
+        toolNameMapping: AIToolNameMapping,
+        policy: AnthropicRequestPolicy = .init(),
+        betas: inout [String],
+        warnings: inout [AIWarning],
+        cacheBreakpointCount: inout Int,
+        applyMessageCacheControl: Bool = true
+    ) throws -> JSONValue {
+        let cacheNamespace = policy.metadataNamespace
+        let role: String
+        switch message.role {
+        case .assistant:
+            role = "assistant"
+        case .system:
+            role = "system"
+        default:
+            role = "user"
+        }
+        var parts: [JSONValue] = []
+        if message.role == .assistant, let reasoning = message.reasoning, !reasoning.isEmpty {
+            if sendReasoning {
+                if let redactedData = message.providerMetadata["anthropic"]?["redactedData"]?.stringValue {
+                    parts.append(.object([
+                        "type": .string("redacted_thinking"),
+                        "data": .string(redactedData)
+                    ]))
+                } else if let signature = message.providerMetadata["anthropic"]?["signature"]?.stringValue {
+                    parts.append(.object([
+                        "type": .string("thinking"),
+                        "thinking": .string(reasoning),
+                        "signature": .string(signature)
+                    ]))
+                } else {
+                    warnings.append(AIWarning(type: "other", message: "unsupported reasoning metadata"))
+                }
+            } else {
+                warnings.append(AIWarning(type: "other", message: "sending reasoning content is disabled for this model"))
+            }
+        }
+        var mcpToolCallIDs: Set<String> = []
+        parts += try message.content.compactMap { part -> JSONValue? in
+            if message.role == .user,
+               let media = try policy.userMediaContent?(part) {
+                return anthropicApplyPartProviderOptionsIfNeeded(
+                    part.providerMetadata,
+                    to: media,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+            }
+            switch part {
+            case let .text(text, providerMetadata):
+                let providerKey = anthropicProviderMetadataKey(from: providerID)
+                let metadata = providerMetadata[providerKey] ?? providerMetadata["anthropic"]
+                if metadata?["type"]?.stringValue == "compaction" {
+                    guard !text.isEmpty else { return nil }
+                    if !betas.contains("compact-2026-09-04") {
+                        betas.append("compact-2026-09-04")
+                    }
+                    var block: [String: JSONValue] = [
+                        "type": .string("compaction"),
+                        "content": .string(text)
+                    ]
+                    if let signature = metadata?["signature"]?.stringValue {
+                        block["signature"] = .string(signature)
+                    }
+                    return .object(block)
+                }
+                var block: [String: JSONValue] = ["type": .string("text"), "text": .string(text)]
+                anthropicApplyPartProviderOptions(
+                    providerMetadata,
+                    to: &block,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+                return .object(block)
+            case let .reasoning(reasoning, providerMetadata):
+                guard message.role == .assistant else {
+                    return nil
+                }
+                if sendReasoning {
+                    var block: [String: JSONValue] = ["type": .string("thinking"), "thinking": .string(reasoning)]
+                    if let signature = providerMetadata["anthropic"]?["signature"]?.stringValue {
+                        block["signature"] = .string(signature)
+                    }
+                    anthropicApplyCacheControl(
+                        anthropicCacheControl(from: providerMetadata, namespace: cacheNamespace),
+                        to: &block,
+                        cacheBreakpointCount: &cacheBreakpointCount,
+                        warnings: &warnings
+                    )
+                    return .object(block)
+                }
+                warnings.append(AIWarning(type: "other", message: "sending reasoning content is disabled for this model"))
+                return nil
+            case let .imageURL(url, providerMetadata):
+                let content: JSONValue
+                if url.lowercased().contains(".pdf") {
+                    if !betas.contains("pdfs-2024-09-25") {
+                        betas.append("pdfs-2024-09-25")
+                    }
+                    content = .object([
+                        "type": .string("document"),
+                        "source": .object([
+                            "type": .string("url"),
+                            "url": .string(url)
+                        ])
+                    ])
+                } else {
+                    content = .object([
+                        "type": .string("image"),
+                        "source": .object([
+                            "type": .string("url"),
+                            "url": .string(url)
+                        ])
+                    ])
+                }
+                return anthropicApplyPartProviderOptionsIfNeeded(
+                    providerMetadata,
+                    to: content,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+            case let .data(mimeType, data, providerMetadata):
+                let content = try anthropicInlineFileContent(mimeType: mimeType, data: data, filename: nil, betas: &betas)
+                return anthropicApplyPartProviderOptionsIfNeeded(
+                    providerMetadata,
+                    to: content,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+            case let .file(mimeType, data, filename, providerMetadata):
+                let content = try anthropicInlineFileContent(mimeType: mimeType, data: data, filename: filename, betas: &betas)
+                return anthropicApplyPartProviderOptionsIfNeeded(
+                    providerMetadata,
+                    to: content,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+            case let .providerReference(mimeType, reference, _, providerMetadata):
+                let provider = anthropicProviderReferenceKey(from: providerID)
+                let fileID = try resolveProviderReference(reference, provider: provider)
+                if !betas.contains("files-api-2025-04-14") {
+                    betas.append("files-api-2025-04-14")
+                }
+                let type = mimeType.lowercased().hasPrefix("image/") ? "image" : "document"
+                let content: JSONValue = .object([
+                    "type": .string(type),
+                    "source": .object([
+                        "type": .string("file"),
+                        "file_id": .string(fileID)
+                    ])
+                ])
+                return anthropicApplyPartProviderOptionsIfNeeded(
+                    providerMetadata,
+                    to: content,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+            case let .toolCall(call):
+                let caller = anthropicCallerWireValue(
+                    from: call.providerMetadata,
+                    providerID: providerID
+                )
+                if call.providerExecuted {
+                    let input = anthropicToolArguments(call.arguments)
+                    if let serverName = anthropicMCPToolUseServerName(call) {
+                        mcpToolCallIDs.insert(call.id)
+                        var block: [String: JSONValue] = [
+                            "type": .string("mcp_tool_use"),
+                            "id": .string(call.id),
+                            "name": .string(call.name),
+                            "server_name": .string(serverName),
+                            "input": input
+                        ]
+                        anthropicApplyCacheControl(
+                            anthropicCacheControl(from: call.providerMetadata, namespace: cacheNamespace),
+                            to: &block,
+                            cacheBreakpointCount: &cacheBreakpointCount,
+                            warnings: &warnings
+                        )
+                        return .object(block)
+                    }
+                    let providerToolName = toolNameMapping.toProviderToolName(call.name)
+                    var block: [String: JSONValue] = [
+                        "type": .string("server_tool_use"),
+                        "id": .string(call.id),
+                        "name": .string(anthropicProviderExecutedToolName(providerToolName, input: input)),
+                        "input": anthropicProviderExecutedToolInput(providerToolName, input: input)
+                    ]
+                    if let caller {
+                        block["caller"] = caller
+                    }
+                    anthropicApplyCacheControl(
+                        anthropicCacheControl(from: call.providerMetadata, namespace: cacheNamespace),
+                        to: &block,
+                        cacheBreakpointCount: &cacheBreakpointCount,
+                        warnings: &warnings
+                    )
+                    return .object(block)
+                }
+                if let toolsetName = anthropicToolsetName(from: call.providerMetadata, providerID: providerID) {
+                    let input = anthropicToolArguments(call.arguments).objectValue ?? [:]
+                    let action = input["action"]?.stringValue
+                    if action == nil {
+                        warnings.append(AIWarning(
+                            type: "other",
+                            message: "toolset tool call for tool \(call.name) is missing the action"
+                        ))
+                    }
+                    var block: [String: JSONValue] = [
+                        "type": .string("tool_use"),
+                        "id": .string(call.id),
+                        "name": .string(action ?? toolsetName),
+                        "toolset_name": .string(toolsetName),
+                        "input": .object(input)
+                    ]
+                    if let caller { block["caller"] = caller }
+                    anthropicApplyCacheControl(
+                        anthropicCacheControl(from: call.providerMetadata, namespace: cacheNamespace),
+                        to: &block,
+                        cacheBreakpointCount: &cacheBreakpointCount,
+                        warnings: &warnings
+                    )
+                    return .object(block)
+                }
+                var block: [String: JSONValue] = [
+                    "type": .string("tool_use"),
+                    "id": .string(call.id),
+                    "name": .string(call.name),
+                    "input": anthropicToolArguments(call.arguments)
+                ]
+                if let caller {
+                    block["caller"] = caller
+                }
+                anthropicApplyCacheControl(
+                    anthropicCacheControl(from: call.providerMetadata, namespace: cacheNamespace),
+                    to: &block,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+                return .object(block)
+            case let .toolResult(result):
+                if mcpToolCallIDs.contains(result.toolCallID) || anthropicIsMCPToolResult(result) {
+                    warnings.append(AIWarning(
+                        type: "other",
+                        message: "provider executed tool result for tool \(result.toolName) is not supported"
+                    ))
+                    return anthropicMCPToolResultBlock(result)
+                }
+                let providerToolName = toolNameMapping.toProviderToolName(result.toolName)
+                if anthropicProviderExecutedToolResultNames.contains(providerToolName) {
+                    var providerResult = result
+                    providerResult.toolName = providerToolName
+                    guard let value = anthropicProviderExecutedToolResultBlock(providerResult, warnings: &warnings),
+                          var block = value.objectValue else {
+                        return nil
+                    }
+                    if (providerToolName == "web_fetch" || providerToolName == "web_search"),
+                       let caller = anthropicCallerWireValue(
+                           from: result.providerMetadata,
+                           providerID: providerID
+                       ) {
+                        block["caller"] = caller
+                    }
+                    if providerToolName == "tool_search" || providerToolName.hasPrefix("tool_search_tool_") {
+                        anthropicApplyCacheControl(
+                            anthropicToolResultCacheControl(result, namespace: cacheNamespace),
+                            to: &block,
+                            cacheBreakpointCount: &cacheBreakpointCount,
+                            warnings: &warnings
+                        )
+                    }
+                    return .object(block)
+                }
+                let converted = try anthropicToolResultContent(result, providerID: providerID, betas: &betas, warnings: &warnings)
+                var block: [String: JSONValue] = [
+                    "type": .string("tool_result"),
+                    "tool_use_id": .string(result.toolCallID),
+                    "content": converted.content
+                ]
+                if converted.isError {
+                    block["is_error"] = true
+                }
+                if let toolsetName = anthropicToolsetName(from: result.providerMetadata, providerID: providerID) {
+                    block["toolset_name"] = .string(toolsetName)
+                }
+                anthropicApplyCacheControl(
+                    anthropicToolResultCacheControl(result, namespace: cacheNamespace),
+                    to: &block,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    warnings: &warnings
+                )
+                return .object(block)
+            case let .custom(value, providerMetadata):
+                guard value["kind"]?.stringValue == "anthropic.fallback" else { return nil }
+                let metadata = providerMetadata["anthropic"]
+                guard let metadata, let marker = anthropicFallbackMetadata(metadata) else {
+                    warnings.append(AIWarning(type: "other", message: "anthropic fallback metadata must include from.model and to.model"))
+                    return nil
+                }
+                if !betas.contains("server-side-fallback-2026-06-01") {
+                    betas.append("server-side-fallback-2026-06-01")
+                }
+                return marker
+            case .reasoningFile, .toolApprovalRequest, .toolApprovalResponse:
+                return .object(["type": .string("text"), "text": .string("")])
+            }
+        }
+        if message.role == .assistant {
+            parts = moveAnthropicToolUseBlocksToEnd(parts)
+        }
+        if applyMessageCacheControl {
+            anthropicApplyCacheControlToLastPart(
+                anthropicCacheControl(from: message.providerMetadata, namespace: cacheNamespace),
+                parts: &parts,
+                cacheBreakpointCount: &cacheBreakpointCount,
+                warnings: &warnings
+            )
+        }
+        return .object(["role": .string(role), "content": .array(parts)])
+    }
+
+    private static func anthropicCacheControl(from providerMetadata: [String: JSONValue], namespace: String = "anthropic") -> JSONValue? {
+        let custom = providerMetadata[namespace]
+        let anthropic = providerMetadata["anthropic"]
+        return custom?["cacheControl"].flatMap(anthropicNonNullCacheControl)
+            ?? custom?["cache_control"].flatMap(anthropicNonNullCacheControl)
+            ?? anthropic?["cacheControl"].flatMap(anthropicNonNullCacheControl)
+            ?? anthropic?["cache_control"].flatMap(anthropicNonNullCacheControl)
+    }
+
+    private static func anthropicToolResultCacheControl(_ result: AIToolResult, namespace: String = "anthropic") -> JSONValue? {
+        if let cacheControl = anthropicCacheControl(from: result.providerMetadata, namespace: namespace) {
+            return cacheControl
+        }
+        let output = result.modelOutput ?? result.result
+        if let cacheControl = anthropicProviderOptionsCacheControl(from: output, namespace: namespace) {
+            return cacheControl
+        }
+        if output["type"]?.stringValue == "content" {
+            return (output["value"]?.arrayValue ?? [])
+                .lazy
+                .compactMap { anthropicProviderOptionsCacheControl(from: $0, namespace: namespace) }
+                .first
+        }
+        return nil
+    }
+
+    private static func anthropicProviderOptionsCacheControl(from value: JSONValue, namespace: String = "anthropic") -> JSONValue? {
+        anthropicCacheControl(from: value["providerOptions"]?.objectValue ?? [:], namespace: namespace)
+    }
+
+    private static func anthropicApplyPartProviderOptionsIfNeeded(
+        _ providerMetadata: [String: JSONValue],
+        to content: JSONValue,
+        cacheNamespace: String = "anthropic",
+        cacheBreakpointCount: inout Int,
+        warnings: inout [AIWarning]
+    ) -> JSONValue {
+        guard var block = content.objectValue else { return content }
+        anthropicApplyPartProviderOptions(
+            providerMetadata,
+            to: &block,
+            cacheNamespace: cacheNamespace,
+            cacheBreakpointCount: &cacheBreakpointCount,
+            warnings: &warnings
+        )
+        return .object(block)
+    }
+
+    private static func anthropicApplyPartProviderOptions(
+        _ providerMetadata: [String: JSONValue],
+        to block: inout [String: JSONValue],
+        cacheNamespace: String = "anthropic",
+        cacheBreakpointCount: inout Int,
+        warnings: inout [AIWarning]
+    ) {
+        anthropicApplyCacheControl(
+            anthropicCacheControl(from: providerMetadata, namespace: cacheNamespace),
+            to: &block,
+            cacheBreakpointCount: &cacheBreakpointCount,
+            warnings: &warnings
+        )
+        guard block["type"]?.stringValue == "document",
+              let anthropic = providerMetadata["anthropic"] else {
+            return
+        }
+        if let title = anthropic["title"]?.stringValue {
+            block["title"] = .string(title)
+        }
+        if let context = anthropic["context"]?.stringValue {
+            block["context"] = .string(context)
+        }
+        if let citations = anthropic["citations"], citations != .null {
+            block["citations"] = citations
+        }
+    }
+
+    private static func anthropicNonNullCacheControl(_ value: JSONValue) -> JSONValue? {
+        guard value != .null else { return .none }
+        return value
+    }
+
+    private static func anthropicApplyCacheControlToLastPart(
+        _ cacheControl: JSONValue?,
+        parts: inout [JSONValue],
+        cacheBreakpointCount: inout Int,
+        warnings: inout [AIWarning]
+    ) {
+        guard !parts.isEmpty, var block = parts[parts.count - 1].objectValue,
+              block["cache_control"] == nil else { return }
+        anthropicApplyCacheControl(
+            cacheControl,
+            to: &block,
+            cacheBreakpointCount: &cacheBreakpointCount,
+            warnings: &warnings
+        )
+        parts[parts.count - 1] = .object(block)
+    }
+
+    private static func anthropicApplyCacheControl(
+        _ cacheControl: JSONValue?,
+        to block: inout [String: JSONValue],
+        cacheBreakpointCount: inout Int,
+        warnings: inout [AIWarning]
+    ) {
+        guard let cacheControl, block["type"]?.stringValue != "fallback" else { return }
+        if block["type"]?.stringValue == "thinking" {
+            warnings.append(AIWarning(
+                type: "unsupported",
+                feature: "cache_control on non-cacheable context",
+                message: "cache_control cannot be set on thinking block. It will be ignored."
+            ))
+            return
+        }
+        if block["type"]?.stringValue == "redacted_thinking" {
+            warnings.append(AIWarning(
+                type: "unsupported",
+                feature: "cache_control on non-cacheable context",
+                message: "cache_control cannot be set on redacted thinking block. It will be ignored."
+            ))
+            return
+        }
+        cacheBreakpointCount += 1
+        if cacheBreakpointCount <= 4 {
+            block["cache_control"] = cacheControl
+        } else {
+            warnings.append(AIWarning(
+                type: "unsupported",
+                feature: "cacheControl breakpoint limit",
+                message: "Maximum 4 cache breakpoints exceeded (found \(cacheBreakpointCount)). This breakpoint will be ignored."
+            ))
+        }
+    }
+
+    private static func anthropicMCPToolUseServerName(_ call: AIToolCall) -> String? {
+        if call.providerMetadata["anthropic"]?["type"]?.stringValue == "mcp-tool-use" {
+            return call.providerMetadata["anthropic"]?["serverName"]?.stringValue ?? call.name
+        }
+        if call.rawValue?["type"]?.stringValue == "mcp_tool_use" {
+            return call.rawValue?["server_name"]?.stringValue ?? call.name
+        }
+        return nil
+    }
+
+    private static func anthropicIsMCPToolResult(_ result: AIToolResult) -> Bool {
+        result.providerMetadata["anthropic"]?["type"]?.stringValue == "mcp-tool-use"
+    }
+
+    private static func anthropicMCPToolResultBlock(_ result: AIToolResult) -> JSONValue {
+        .object([
+            "type": .string("mcp_tool_result"),
+            "tool_use_id": .string(result.toolCallID),
+            "content": anthropicMCPToolResultContent(result),
+            "is_error": .bool(result.isError)
+        ])
+    }
+
+    private static func anthropicMCPToolResultContent(_ result: AIToolResult) -> JSONValue {
+        let output = result.modelOutput ?? result.result
+        if let object = output.objectValue, object["type"]?.stringValue == "json" {
+            return object["value"] ?? .array([JSONValue]())
+        }
+        return output
+    }
+
+    private static func anthropicInlineFileContent(
+        mimeType: String,
+        data: Data,
+        filename: String?,
+        betas: inout [String]
+    ) throws -> JSONValue {
+        let resolvedMimeType = try resolveFullMediaType(mediaType: mimeType, data: data)
+        let lowercasedMimeType = resolvedMimeType.lowercased()
+        if lowercasedMimeType == "application/pdf" {
+            if !betas.contains("pdfs-2024-09-25") {
+                betas.append("pdfs-2024-09-25")
+            }
+            return .object([
+                "type": .string("document"),
+                "source": .object([
+                    "type": .string("base64"),
+                    "media_type": .string(resolvedMimeType),
+                    "data": .string(data.base64EncodedString())
+                ])
+            ])
+        }
+        if lowercasedMimeType == "text/plain" {
+            var block: [String: JSONValue] = [
+                "type": .string("document"),
+                "source": .object([
+                    "type": .string("text"),
+                    "media_type": .string("text/plain"),
+                    "data": .string(String(data: data, encoding: .utf8) ?? data.base64EncodedString())
+                ])
+            ]
+            if let filename {
+                block["title"] = .string(filename)
+            }
+            return .object(block)
+        }
+        if lowercasedMimeType.hasPrefix("image/") {
+            return .object([
+                "type": .string("image"),
+                "source": .object([
+                    "type": .string("base64"),
+                    "media_type": .string(resolvedMimeType),
+                    "data": .string(data.base64EncodedString())
+                ])
+            ])
+        }
+        throw AIError.invalidArgument(
+            argument: "mediaType",
+            message: "Unsupported media type: \(resolvedMimeType)."
+        )
+    }
+
+    private static func anthropicToolResultContent(
+        _ result: AIToolResult,
+        providerID: String,
+        betas: inout [String],
+        warnings: inout [AIWarning]
+    ) throws -> (content: JSONValue, isError: Bool) {
+        let output = result.modelOutput ?? result.result
+        if let text = output.stringValue {
+            return (.string(text), result.isError)
+        }
+        guard let object = output.objectValue, let type = object["type"]?.stringValue else {
+            return (.string(anthropicJSONString(output) ?? ""), result.isError)
+        }
+        switch type {
+        case "content":
+            let content = try (object["value"]?.arrayValue ?? []).compactMap { item in
+                try anthropicToolResultContentPart(item, providerReferenceKey: anthropicProviderReferenceKey(from: providerID), betas: &betas, warnings: &warnings)
+            }
+            return (.array(content), result.isError)
+        case "text", "error-text":
+            return (.string(object["value"]?.stringValue ?? ""), result.isError || type == "error-text")
+        case "execution-denied":
+            return (.string(object["reason"]?.stringValue ?? "Tool call execution denied."), result.isError)
+        case "json", "error-json":
+            return (.string(anthropicJSONString(object["value"] ?? .object([:])) ?? ""), result.isError || type == "error-json")
+        default:
+            return (.string(anthropicJSONString(object["value"] ?? output) ?? ""), result.isError)
+        }
+    }
+
+    private static let anthropicProviderExecutedToolResultNames: Set<String> = [
+        "advisor",
+        "code_execution",
+        "tool_search",
+        "tool_search_tool_bm25",
+        "tool_search_tool_regex",
+        "web_fetch",
+        "web_search"
+    ]
+
+    private static func anthropicProviderExecutedToolName(_ name: String, input: JSONValue) -> String {
+        guard name == "code_execution",
+              let inputType = input["type"]?.stringValue,
+              inputType == "bash_code_execution" || inputType == "text_editor_code_execution" else {
+            return name
+        }
+        return inputType
+    }
+
+    private static func anthropicProviderExecutedToolInput(_ name: String, input: JSONValue) -> JSONValue {
+        guard name == "code_execution",
+              var object = input.objectValue,
+              let inputType = object["type"]?.stringValue,
+              inputType == "bash_code_execution"
+                || inputType == "text_editor_code_execution"
+                || inputType == "programmatic-tool-call" else {
+            return input
+        }
+        object.removeValue(forKey: "type")
+        return .object(object)
+    }
+
+    private static func anthropicProviderExecutedToolResultBlock(_ result: AIToolResult, warnings: inout [AIWarning]) -> JSONValue? {
+        switch result.toolName {
+        case "code_execution":
+            return anthropicCodeExecutionToolResultBlock(result)
+        case "tool_search", "tool_search_tool_bm25", "tool_search_tool_regex":
+            return anthropicToolSearchToolResultBlock(result)
+        case "web_search":
+            return anthropicWebSearchToolResultBlock(result)
+        case "web_fetch":
+            return anthropicWebFetchToolResultBlock(result)
+        case "advisor":
+            return anthropicAdvisorToolResultBlock(result, warnings: &warnings)
+        default:
+            return nil
+        }
+    }
+
+    private static func anthropicWebSearchToolResultBlock(_ result: AIToolResult) -> JSONValue? {
+        let output = result.modelOutput ?? result.result
+        let values: [JSONValue]
+        if let object = output.objectValue, object["type"]?.stringValue == "json" {
+            values = object["value"]?.arrayValue ?? []
+        } else if let array = output.arrayValue {
+            values = array
+        } else {
+            return nil
+        }
+        return .object([
+            "type": .string("web_search_tool_result"),
+            "tool_use_id": .string(result.toolCallID),
+            "content": .array(values.map(anthropicWebSearchResultBlock))
+        ])
+    }
+
+    private static func anthropicWebFetchToolResultBlock(_ result: AIToolResult) -> JSONValue? {
+        let output = result.modelOutput ?? result.result
+        guard let object = output.objectValue, let type = object["type"]?.stringValue else {
+            return nil
+        }
+        let content: JSONValue
+        switch type {
+        case "json":
+            content = anthropicWebFetchResultBlock(object["value"] ?? .object([:]))
+        case "error-json":
+            content = anthropicProviderExecutedErrorBlock(
+                object["value"] ?? .object([:]),
+                defaultType: "web_fetch_tool_result_error"
+            )
+        case "web_fetch_result":
+            content = anthropicWebFetchResultBlock(output)
+        case "web_fetch_tool_result_error":
+            content = anthropicProviderExecutedErrorBlock(output, defaultType: "web_fetch_tool_result_error")
+        default:
+            return nil
+        }
+        return .object([
+            "type": .string("web_fetch_tool_result"),
+            "tool_use_id": .string(result.toolCallID),
+            "content": content
+        ])
+    }
+
+    private static func anthropicWebSearchResultBlock(_ result: JSONValue) -> JSONValue {
+        .object([
+            "type": result["type"] ?? .string("web_search_result"),
+            "url": result["url"] ?? .null,
+            "title": result["title"] ?? .null,
+            "page_age": result["pageAge"] ?? result["page_age"] ?? .null,
+            "encrypted_content": result["encryptedContent"] ?? result["encrypted_content"] ?? .null
+        ])
+    }
+
+    private static func anthropicCodeExecutionToolResultBlock(_ result: AIToolResult) -> JSONValue? {
+        let output = result.modelOutput ?? result.result
+        let content = output["type"]?.stringValue == "json" ? (output["value"] ?? .object([:])) : output
+        guard let contentType = content["type"]?.stringValue else {
+            return nil
+        }
+        let resultType: String
+        switch contentType {
+        case "code_execution_result", "code_execution_tool_result_error", "encrypted_code_execution_result":
+            resultType = "code_execution_tool_result"
+        case let type where type.hasPrefix("bash_code_execution"):
+            resultType = "bash_code_execution_tool_result"
+        case let type where type.hasPrefix("text_editor_code_execution"):
+            resultType = "text_editor_code_execution_tool_result"
+        default:
+            return nil
+        }
+        return .object([
+            "type": .string(resultType),
+            "tool_use_id": .string(result.toolCallID),
+            "content": anthropicCodeExecutionResultContent(content)
+        ])
+    }
+
+    private static func anthropicCodeExecutionResultContent(_ content: JSONValue) -> JSONValue {
+        if content["type"]?.stringValue == "code_execution_tool_result_error" {
+            return anthropicProviderExecutedErrorBlock(content, defaultType: "code_execution_tool_result_error")
+        }
+        if content["type"]?.stringValue == "bash_code_execution_result" {
+            return JSONValue.object([
+                "type": content["type"],
+                "stdout": content["stdout"],
+                "stderr": content["stderr"],
+                "return_code": content["return_code"],
+                "content": content["content"]
+            ])
+        }
+        var object = content.objectValue ?? [:]
+        if content["type"]?.stringValue == "code_execution_result" || content["type"]?.stringValue == "encrypted_code_execution_result" {
+            object["content"] = object["content"] ?? .array([JSONValue]())
+        }
+        return .object(object)
+    }
+
+    private static func anthropicToolSearchToolResultBlock(_ result: AIToolResult) -> JSONValue? {
+        let output = result.modelOutput ?? result.result
+        let outputType = output["type"]?.stringValue
+        let value = outputType == "json" || outputType == "error-json" ? output["value"] ?? .null : output
+        if outputType == "error-json" || value["type"]?.stringValue == "tool_search_tool_result_error" {
+            return .object([
+                "type": .string("tool_search_tool_result"),
+                "tool_use_id": .string(result.toolCallID),
+                "content": anthropicProviderExecutedErrorBlock(value, defaultType: "tool_search_tool_result_error")
+            ])
+        }
+        if let object = output.objectValue,
+           object["type"]?.stringValue == "json",
+           let references = object["value"]?.arrayValue {
+            return anthropicToolSearchToolResultBlock(toolCallID: result.toolCallID, references: references)
+        }
+        if let references = output.arrayValue {
+            return anthropicToolSearchToolResultBlock(toolCallID: result.toolCallID, references: references)
+        }
+        return nil
+    }
+
+    private static func anthropicToolSearchToolResultBlock(toolCallID: String, references: [JSONValue]) -> JSONValue {
+        .object([
+            "type": .string("tool_search_tool_result"),
+            "tool_use_id": .string(toolCallID),
+            "content": .object([
+                "type": .string("tool_search_tool_search_result"),
+                "tool_references": .array(references.map { reference in
+                    .object([
+                        "type": reference["type"] ?? .string("tool_reference"),
+                        "tool_name": reference["toolName"] ?? reference["tool_name"] ?? .null
+                    ])
+                })
+            ])
+        ])
+    }
+
+    private static func anthropicAdvisorToolResultBlock(_ result: AIToolResult, warnings: inout [AIWarning]) -> JSONValue? {
+        let output = result.modelOutput ?? result.result
+        guard let object = output.objectValue, let type = object["type"]?.stringValue else {
+            return nil
+        }
+        let content: JSONValue
+        switch type {
+        case "json":
+            content = anthropicAdvisorResultBlock(object["value"] ?? .object([:]))
+        case "advisor_result", "advisor_redacted_result", "advisor_tool_result_error":
+            content = anthropicAdvisorResultBlock(output)
+        default:
+            warnings.append(AIWarning(
+                type: "other",
+                message: "provider executed tool result output type \(type) for tool advisor is not supported"
+            ))
+            return nil
+        }
+        return .object([
+            "type": .string("advisor_tool_result"),
+            "tool_use_id": .string(result.toolCallID),
+            "content": content
+        ])
+    }
+
+    private static func anthropicAdvisorResultBlock(_ result: JSONValue) -> JSONValue {
+        switch result["type"]?.stringValue {
+        case "advisor_redacted_result":
+            var content: [String: JSONValue] = [
+                "type": .string("advisor_redacted_result"),
+                "encrypted_content": result["encryptedContent"] ?? result["encrypted_content"] ?? .null
+            ]
+            if let stopReason = result["stopReason"] ?? result["stop_reason"], stopReason != .null {
+                content["stop_reason"] = stopReason
+            }
+            return .object(content)
+        case "advisor_tool_result_error":
+            return anthropicProviderExecutedErrorBlock(result, defaultType: "advisor_tool_result_error")
+        default:
+            var content: [String: JSONValue] = [
+                "type": result["type"] ?? .string("advisor_result"),
+                "text": result["text"] ?? .null
+            ]
+            if let stopReason = result["stopReason"] ?? result["stop_reason"], stopReason != .null {
+                content["stop_reason"] = stopReason
+            }
+            return .object(content)
+        }
+    }
+
+    private static func anthropicWebFetchResultBlock(_ result: JSONValue) -> JSONValue {
+        .object([
+            "type": result["type"] ?? .string("web_fetch_result"),
+            "url": result["url"] ?? .null,
+            "retrieved_at": result["retrievedAt"] ?? result["retrieved_at"] ?? .null,
+            "content": anthropicWebFetchDocumentBlock(result["content"] ?? .object([:]))
+        ])
+    }
+
+    private static func anthropicWebFetchDocumentBlock(_ document: JSONValue) -> JSONValue {
+        let source = document["source"]
+        return .object([
+            "type": document["type"] ?? .string("document"),
+            "title": document["title"],
+            "citations": document["citations"],
+            "source": .object([
+                "type": source?["type"],
+                "media_type": source?["mediaType"] ?? source?["media_type"],
+                "data": source?["data"]
+            ])
+        ])
+    }
+
+    private static func anthropicProviderExecutedErrorBlock(_ value: JSONValue, defaultType: String) -> JSONValue {
+        let object: [String: JSONValue]
+        if let string = value.stringValue,
+           let decoded = try? decodeJSONBody(Data(string.utf8)),
+           let decodedObject = decoded.objectValue {
+            object = decodedObject
+        } else if let valueObject = value.objectValue {
+            object = valueObject
+        } else {
+            object = [:]
+        }
+        return .object([
+            "type": object["type"] ?? .string(defaultType),
+            "error_code": object["errorCode"] ?? object["error_code"] ?? .string("unavailable")
+        ])
+    }
+
+    private static func anthropicToolResultContentPart(
+        _ item: JSONValue,
+        providerReferenceKey: String,
+        betas: inout [String],
+        warnings: inout [AIWarning]
+    ) throws -> JSONValue? {
+        switch item["type"]?.stringValue {
+        case "text":
+            return .object([
+                "type": .string("text"),
+                "text": item["text"] ?? .string("")
+            ])
+        case "file":
+            return try anthropicToolResultFileContent(
+                mediaType: item["mediaType"]?.stringValue ?? "application/octet-stream",
+                data: item["data"],
+                providerReferenceKey: providerReferenceKey,
+                betas: &betas,
+                warnings: &warnings
+            )
+        case "image-data":
+            return try anthropicToolResultBase64FileContent(
+                mediaType: item["mediaType"]?.stringValue ?? "image/jpeg",
+                base64: item["data"]?.stringValue ?? "",
+                betas: &betas,
+                warnings: &warnings
+            )
+        case "image-url":
+            return .object([
+                "type": .string("image"),
+                "source": .object([
+                    "type": .string("url"),
+                    "url": item["url"] ?? .string("")
+                ])
+            ])
+        case "file-data":
+            return try anthropicToolResultBase64FileContent(
+                mediaType: item["mediaType"]?.stringValue ?? "application/octet-stream",
+                base64: item["data"]?.stringValue ?? "",
+                betas: &betas,
+                warnings: &warnings
+            )
+        case "custom":
+            if let anthropicOptions = item["providerOptions"]?["anthropic"],
+               anthropicOptions["type"]?.stringValue == "tool-reference",
+               let toolName = anthropicOptions["toolName"]?.stringValue {
+                return .object([
+                    "type": .string("tool_reference"),
+                    "tool_name": .string(toolName)
+                ])
+            }
+            warnings.append(AIWarning(type: "other", message: "unsupported custom tool content part"))
+            return nil
+        default:
+            warnings.append(AIWarning(type: "other", message: "unsupported tool content part type: \(item["type"]?.stringValue ?? "unknown")"))
+            return nil
+        }
+    }
+
+    private static func anthropicToolResultFileContent(
+        mediaType: String,
+        data: JSONValue?,
+        providerReferenceKey: String,
+        betas: inout [String],
+        warnings: inout [AIWarning]
+    ) throws -> JSONValue? {
+        switch data?["type"]?.stringValue {
+        case "reference":
+            let reference = (data?["reference"]?.objectValue ?? [:]).compactMapValues(\.stringValue)
+            let key = reference[providerReferenceKey] != nil ? providerReferenceKey : "anthropic"
+            let fileID = try resolveProviderReference(reference, provider: key)
+            if !betas.contains("files-api-2025-04-14") {
+                betas.append("files-api-2025-04-14")
+            }
+            return .object([
+                "type": .string(topLevelMediaType(mediaType) == "image" ? "image" : "document"),
+                "source": .object([
+                    "type": .string("file"),
+                    "file_id": .string(fileID)
+                ])
+            ])
+        case "url":
+            if topLevelMediaType(mediaType) == "image" {
+                return .object([
+                    "type": .string("image"),
+                    "source": .object([
+                        "type": .string("url"),
+                        "url": data?["url"] ?? .string("")
+                    ])
+                ])
+            }
+            return .object([
+                "type": .string("document"),
+                "source": .object([
+                    "type": .string("url"),
+                    "url": data?["url"] ?? .string("")
+                ])
+            ])
+        case "data":
+            return try anthropicToolResultBase64FileContent(
+                mediaType: mediaType,
+                base64: data?["data"]?.stringValue ?? "",
+                betas: &betas,
+                warnings: &warnings
+            )
+        default:
+            warnings.append(AIWarning(
+                type: "other",
+                message: "unsupported tool content part type: file with data type: \(data?["type"]?.stringValue ?? "unknown")"
+            ))
+            return nil
+        }
+    }
+
+    private static func anthropicToolResultBase64FileContent(
+        mediaType: String,
+        base64: String,
+        betas: inout [String],
+        warnings: inout [AIWarning]
+    ) throws -> JSONValue? {
+        let resolvedMediaType: String
+        if isFullMediaType(mediaType) {
+            resolvedMediaType = mediaType
+        } else if let data = Data(base64Encoded: base64) {
+            resolvedMediaType = try resolveFullMediaType(mediaType: mediaType, data: data)
+        } else {
+            throw AIError.invalidArgument(
+                argument: "mediaType",
+                message: "File of media type \"\(mediaType)\" must specify subtype since it could not be auto-detected."
+            )
+        }
+
+        if resolvedMediaType.lowercased().hasPrefix("image/") {
+            return .object([
+                "type": .string("image"),
+                "source": .object([
+                    "type": .string("base64"),
+                    "media_type": .string(resolvedMediaType),
+                    "data": .string(base64)
+                ])
+            ])
+        }
+        if resolvedMediaType.lowercased() == "application/pdf" {
+            if !betas.contains("pdfs-2024-09-25") {
+                betas.append("pdfs-2024-09-25")
+            }
+            return .object([
+                "type": .string("document"),
+                "source": .object([
+                    "type": .string("base64"),
+                    "media_type": .string("application/pdf"),
+                    "data": .string(base64)
+                ])
+            ])
+        }
+
+        warnings.append(AIWarning(
+            type: "other",
+            message: "unsupported tool content part type: file with media type: \(mediaType)"
+        ))
+        return nil
+    }
+}
+
+private func moveAnthropicToolUseBlocksToEnd(_ content: [JSONValue]) -> [JSONValue] {
+    var nonToolUseBlocks: [JSONValue] = []
+    var toolUseBlocks: [JSONValue] = []
+    for block in content {
+        if ["thinking", "redacted_thinking", "fallback"].contains(block["type"]?.stringValue ?? "") {
+            nonToolUseBlocks.append(contentsOf: toolUseBlocks)
+            toolUseBlocks.removeAll(keepingCapacity: true)
+            nonToolUseBlocks.append(block)
+        } else if block["type"]?.stringValue == "tool_use" {
+            toolUseBlocks.append(block)
+        } else {
+            nonToolUseBlocks.append(block)
+        }
+    }
+    return nonToolUseBlocks + toolUseBlocks
+}
+
+private func anthropicNormalizeHistoricalCallers(in conversation: inout [JSONValue], before lastUserMessageIndex: Int, warnings: inout [AIWarning]) {
+    guard lastUserMessageIndex > 0 else { return }
+    let codeExecutionIDs = Set(conversation.filter { $0["role"]?.stringValue == "assistant" }.flatMap {
+        ($0["content"]?.arrayValue ?? []).compactMap { block -> String? in
+            guard block["type"]?.stringValue == "server_tool_use", block["name"]?.stringValue == "code_execution" else { return nil }
+            return block["id"]?.stringValue
+        }
+    })
+    var warned: Set<String> = []
+    for index in 0..<lastUserMessageIndex where conversation[index]["role"]?.stringValue == "assistant" {
+        guard var message = conversation[index].objectValue, var content = message["content"]?.arrayValue else { continue }
+        for partIndex in content.indices {
+            guard var block = content[partIndex].objectValue, let caller = block["caller"],
+                  caller["type"]?.stringValue != "direct", let sourceID = caller["tool_id"]?.stringValue,
+                  !codeExecutionIDs.contains(sourceID) else { continue }
+            block.removeValue(forKey: "caller")
+            content[partIndex] = .object(block)
+            let id = block["id"]?.stringValue ?? block["tool_use_id"]?.stringValue ?? ""
+            if warned.insert(id).inserted {
+                warnings.append(AIWarning(type: "other", message: "Omitted caller metadata for tool \(id) because source code execution tool \(sourceID) is missing from the conversation history."))
+            }
+        }
+        message["content"] = .array(content)
+        conversation[index] = .object(message)
+    }
+}
+
+public func amazonBedrockThinkingBindingBody(_ body: [String: JSONValue]) -> [String: JSONValue] {
+    guard var thinking = body["thinking"]?.objectValue,
+          let blockBinding = thinking["block_binding"]?.objectValue else {
+        return body
+    }
+    var output = body
+    let mismatchBehavior = blockBinding["prefix_mismatch_behavior"] ?? blockBinding["mismatch_behavior"]
+    thinking["block_binding"] = .object([
+        "mismatch_behavior": mismatchBehavior
+    ].compactMapValues { $0 })
+    output["thinking"] = .object(thinking)
+    return output
+}
+
+public struct AnthropicPreparedCall {
+    public var body: [String: JSONValue]
+    public var betas: [String]
+    public var warnings: [AIWarning]
+    public var usesJSONToolResponseFormat: Bool = false
+    public var toolNameMapping: AIToolNameMapping = AIToolNameMapping()
+    public var markCodeExecutionDynamic: Bool = false
+    public var providerOptions: [String: JSONValue] = [:]
+}
+
+public func anthropicSupportedHTTPURL(_ value: String) -> Bool {
+    guard let url = URL(string: value),
+          let scheme = url.scheme?.lowercased(),
+          scheme == "http" || scheme == "https",
+          url.host?.isEmpty == false else {
+        return false
+    }
+    return true
+}

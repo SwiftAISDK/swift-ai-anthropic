@@ -1,0 +1,143 @@
+import Foundation
+import SwiftAIProvider
+import SwiftAITransport
+import SwiftAIProviderUtilities
+
+
+public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisionProvider, @unchecked Sendable {
+    public let providerID = "anthropic"
+    public let supportedCapabilities: Set<ModelCapability> = [.language, .evaluation, .decision]
+    private let config: AnthropicModelConfiguration
+    private let languageProviderID: String
+    private let skillsProviderID: String
+
+    public init(configuration settings: AnthropicProviderSettings) throws {
+        if settings.apiKey != nil, settings.authToken != nil {
+            throw AIError.invalidArgument(argument: "apiKey/authToken", message: "Both apiKey and authToken were provided. Please use only one authentication method.")
+        }
+        var headers = settings.headers
+        if let authToken = settings.authToken {
+            headers["Authorization"] = headers["Authorization"] ?? "Bearer \(authToken)"
+        } else {
+            let key = settings.apiKey ?? settings.environmentValue(["ANTHROPIC_API_KEY"])
+            guard let key else {
+                throw AIError.missingAPIKey(provider: providerID, environmentVariables: ["ANTHROPIC_API_KEY"])
+            }
+            headers["x-api-key"] = headers["x-api-key"] ?? key
+        }
+        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.88")
+        headers["anthropic-version"] = headers["anthropic-version"] ?? "2023-06-01"
+        languageProviderID = settings.name ?? "anthropic.messages"
+        skillsProviderID = anthropicSkillsProviderID(from: languageProviderID)
+        config = AnthropicModelConfiguration(
+            providerID: providerID,
+            baseURL: anthropicNormalizedBaseURL(settings.baseURL ?? settings.environmentValue(["ANTHROPIC_BASE_URL"])),
+            headers: headers,
+            transport: settings.transport,
+            queryParams: settings.queryParams,
+            transformRequestBody: settings.transformRequestBody,
+            batchResultMaxLineBytes: settings.batchResultDownloads?.maxLineBytes
+        )
+    }
+
+    public func languageModel(_ modelID: String) throws -> any LanguageModel {
+        AnthropicBatchLanguageModel(modelID: modelID, config: config.withProviderID(languageProviderID))
+    }
+
+    /// Creates an experimental Choice/Score/Boolean evaluation model using Messages.
+    public func evaluationModel(_ modelID: String) throws -> any AIEvaluationModelV4 {
+        EvaluationLanguageModel(
+            model: AnthropicBatchLanguageModel(modelID: modelID, config: config.withProviderID(languageProviderID)),
+            providerID: anthropicEvaluationProviderID(from: languageProviderID)
+        )
+    }
+
+    public func decisionModel(_ modelID: String) throws -> any AIDecisionModelV4 {
+        DecisionLanguageModel(
+            model: try languageModel(modelID),
+            providerID: String(anthropicEvaluationProviderID(from: languageProviderID).dropLast(".evaluation".count)) + ".decision"
+        )
+    }
+
+    public func experimentalDecisionModel(_ modelID: String) throws -> any AIDecisionModelV4 {
+        try decisionModel(modelID)
+    }
+
+    public func messages(_ modelID: String) throws -> any BatchLanguageModel {
+        AnthropicBatchLanguageModel(modelID: modelID, config: config.withProviderID(languageProviderID))
+    }
+
+    public func batchLanguageModel(_ modelID: String) -> any BatchLanguageModel {
+        AnthropicBatchLanguageModel(modelID: modelID, config: config.withProviderID(languageProviderID))
+    }
+
+    /// Provider-owned Batch V4 service. The model-bound factory above remains
+    /// available as a source-compatible text-batch shim.
+    public func experimentalBatch() -> any AIBatchProvider {
+        AnthropicBatchProvider(
+            providerID: anthropicBatchProviderID(from: languageProviderID),
+            config: config.withProviderID(languageProviderID)
+        )
+    }
+
+    public func files() -> any AIFileClient {
+        AnthropicFileClient(providerID: languageProviderID, config: config.withProviderID(languageProviderID))
+    }
+
+    public func skills() -> any AISkillsClient {
+        AnthropicSkillsClient(providerID: skillsProviderID, providerReferenceKey: "anthropic", config: config.withProviderID(skillsProviderID))
+    }
+
+    public func embeddingModel(_ modelID: String) throws -> any EmbeddingModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .embedding, modelID: modelID)
+    }
+
+    public func imageModel(_ modelID: String) throws -> any ImageModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .image, modelID: modelID)
+    }
+
+    public func transcriptionModel(_ modelID: String) throws -> any TranscriptionModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .transcription, modelID: modelID)
+    }
+
+    public func speechModel(_ modelID: String) throws -> any SpeechModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .speech, modelID: modelID)
+    }
+
+    public func videoModel(_ modelID: String) throws -> any VideoModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .video, modelID: modelID)
+    }
+
+    public func rerankingModel(_ modelID: String) throws -> any RerankingModel {
+        throw AIError.unsupportedModel(provider: providerID, capability: .reranking, modelID: modelID)
+    }
+}
+
+private func anthropicEvaluationProviderID(from languageProviderID: String) -> String {
+    if languageProviderID.hasSuffix(".messages") {
+        return String(languageProviderID.dropLast(".messages".count)) + ".evaluation"
+    }
+    return languageProviderID + ".evaluation"
+}
+
+private func anthropicSkillsProviderID(from languageProviderID: String) -> String {
+    if languageProviderID.hasSuffix(".messages") {
+        return String(languageProviderID.dropLast(".messages".count)) + ".skills"
+    }
+    return languageProviderID + ".skills"
+}
+
+private func anthropicBatchProviderID(from languageProviderID: String) -> String {
+    if languageProviderID.hasSuffix(".messages") {
+        return String(languageProviderID.dropLast(".messages".count)) + ".batch"
+    }
+    return languageProviderID + ".batch"
+}
+
+private func anthropicNormalizedBaseURL(_ baseURL: String?) -> String {
+    let apiURL = "https://api.anthropic.com"
+    let versionedAPIURL = "\(apiURL)/v1"
+    guard let baseURL else { return versionedAPIURL }
+    let normalized = withoutTrailingSlash(baseURL)
+    return normalized == apiURL ? versionedAPIURL : normalized
+}

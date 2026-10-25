@@ -1,0 +1,354 @@
+import Foundation
+import SwiftAIProvider
+import SwiftAITransport
+import SwiftAIProviderUtilities
+
+
+struct AnthropicPreparedTools {
+    var tools: [JSONValue] = []
+    var toolChoice: JSONValue?
+    var betas: [String] = []
+    var warnings: [AIWarning] = []
+    var hasCodeExecution = false
+}
+
+func anthropicPrepareTools(
+    from tools: [String: JSONValue],
+    toolChoice: JSONValue? = nil,
+    disableParallelToolUse: Bool? = nil,
+    supportsStructuredOutput: Bool = true,
+    supportsStrictTools: Bool = true,
+    defaultEagerInputStreaming: Bool = false,
+    rejectsForcedToolUse: Bool = false,
+    cacheNamespace: String = "anthropic",
+    initialCacheBreakpointCount: Int = 0
+) throws -> AnthropicPreparedTools {
+    var prepared = AnthropicPreparedTools()
+    guard !tools.isEmpty else { return prepared }
+
+    func addBeta(_ beta: String) {
+        if !prepared.betas.contains(beta) {
+            prepared.betas.append(beta)
+        }
+    }
+
+    var cacheBreakpointCount = initialCacheBreakpointCount
+    for (name, schema) in tools {
+        let object = schema.objectValue
+        let isProviderTool = object?["type"]?.stringValue == "provider" || object?["id"]?.stringValue?.hasPrefix("anthropic.") == true
+        guard isProviderTool else {
+            var tool: [String: JSONValue] = ["name": .string(name)]
+            var inputSchema = schema.objectValue
+            let allProviderOptions = inputSchema?.removeValue(forKey: "providerOptions")
+            let providerOptions = allProviderOptions?["anthropic"]?.objectValue ?? [:]
+            if let strict = inputSchema?.removeValue(forKey: "strict")?.boolValue {
+                if supportsStrictTools {
+                    tool["strict"] = .bool(strict)
+                } else if strict {
+                    prepared.warnings.append(AIWarning(
+                        type: "unsupported",
+                        feature: "strict",
+                        message: "Tool '\(name)' has strict: \(strict), but strict mode is not supported by this provider. The strict property will be ignored."
+                    ))
+                }
+            }
+            if supportsStructuredOutput {
+                addBeta("structured-outputs-2025-11-13")
+            }
+            if let inputExamples = inputSchema?.removeValue(forKey: "inputExamples")?.arrayValue {
+                tool["input_examples"] = .array(inputExamples.map { example in
+                    example["input"] ?? example
+                })
+                addBeta("advanced-tool-use-2025-11-20")
+            }
+            if let description = inputSchema?.removeValue(forKey: "description")?.stringValue {
+                tool["description"] = .string(description)
+            }
+            tool["input_schema"] = inputSchema.map(JSONValue.object) ?? schema
+            if let eagerInputStreaming = providerOptions["eagerInputStreaming"]?.boolValue {
+                tool["eager_input_streaming"] = .bool(eagerInputStreaming)
+            } else if defaultEagerInputStreaming {
+                tool["eager_input_streaming"] = true
+            }
+            if let deferLoading = providerOptions["deferLoading"]?.boolValue {
+                tool["defer_loading"] = .bool(deferLoading)
+            }
+            if let allowedCallers = providerOptions["allowedCallers"]?.arrayValue {
+                tool["allowed_callers"] = .array(allowedCallers.compactMap { caller in
+                    caller.stringValue.map(JSONValue.string)
+                })
+                addBeta("advanced-tool-use-2025-11-20")
+            }
+            let customCacheOptions = allProviderOptions?[cacheNamespace]
+            let cacheControl = [
+                customCacheOptions?["cacheControl"], customCacheOptions?["cache_control"],
+                providerOptions["cacheControl"], providerOptions["cache_control"]
+            ].compactMap { $0 }.first { $0 != .null }
+            if let cacheControl {
+                cacheBreakpointCount += 1
+                if cacheBreakpointCount <= 4 {
+                    tool["cache_control"] = cacheControl
+                } else {
+                    prepared.warnings.append(AIWarning(
+                        type: "unsupported",
+                        feature: "cacheControl breakpoint limit",
+                        message: "Maximum 4 cache breakpoints exceeded (found \(cacheBreakpointCount)). This breakpoint will be ignored."
+                    ))
+                }
+            }
+            prepared.tools.append(.object(tool))
+            continue
+        }
+
+        let id = object?["id"]?.stringValue ?? name
+        let args = object?["args"]?.objectValue ?? [:]
+        switch id {
+        case "anthropic.code_execution_20250522":
+            addBeta("code-execution-2025-05-22")
+            prepared.hasCodeExecution = true
+            prepared.tools.append(.object(["type": "code_execution_20250522", "name": "code_execution"]))
+        case "anthropic.code_execution_20250825":
+            addBeta("code-execution-2025-08-25")
+            prepared.hasCodeExecution = true
+            prepared.tools.append(.object(["type": "code_execution_20250825", "name": "code_execution"]))
+        case "anthropic.code_execution_20260120":
+            prepared.hasCodeExecution = true
+            prepared.tools.append(.object(["type": "code_execution_20260120", "name": "code_execution"]))
+        case "anthropic.computer_20241022":
+            addBeta("computer-use-2024-10-22")
+            prepared.tools.append(anthropicComputerTool(type: "computer_20241022", args: args))
+        case "anthropic.computer_20250124":
+            addBeta("computer-use-2025-01-24")
+            prepared.tools.append(anthropicComputerTool(type: "computer_20250124", args: args))
+        case "anthropic.computer_20251124":
+            addBeta("computer-use-2025-11-24")
+            prepared.tools.append(anthropicComputerTool(type: "computer_20251124", args: args, includeZoom: true))
+        case "anthropic.computer_toolset_20260801":
+            var wireTool: [String: JSONValue] = ["type": .string("computer_toolset_20260801")]
+            if let configs = args["configs"]?.objectValue {
+                wireTool["configs"] = .object(configs.mapValues { config in
+                    guard let object = config.objectValue else { return config }
+                    return .object([
+                        "enabled": object["enabled"] ?? .null,
+                        "defer_loading": object["deferLoading"] ?? .null
+                    ].filter { $0.value != .null })
+                })
+            }
+            prepared.tools.append(.object(wireTool))
+        case "anthropic.text_editor_20241022":
+            addBeta("computer-use-2024-10-22")
+            prepared.tools.append(.object(["type": "text_editor_20241022", "name": "str_replace_editor"]))
+        case "anthropic.text_editor_20250124":
+            addBeta("computer-use-2025-01-24")
+            prepared.tools.append(.object(["type": "text_editor_20250124", "name": "str_replace_editor"]))
+        case "anthropic.text_editor_20250429":
+            addBeta("computer-use-2025-01-24")
+            prepared.tools.append(.object(["type": "text_editor_20250429", "name": "str_replace_based_edit_tool"]))
+        case "anthropic.text_editor_20250728":
+            var tool: [String: JSONValue] = ["type": "text_editor_20250728", "name": "str_replace_based_edit_tool"]
+            if let maxCharacters = args["maxCharacters"] {
+                tool["max_characters"] = maxCharacters
+            }
+            prepared.tools.append(.object(tool))
+        case "anthropic.bash_20241022":
+            addBeta("computer-use-2024-10-22")
+            prepared.tools.append(.object(["type": "bash_20241022", "name": "bash"]))
+        case "anthropic.bash_20250124":
+            addBeta("computer-use-2025-01-24")
+            prepared.tools.append(.object(["type": "bash_20250124", "name": "bash"]))
+        case "anthropic.memory_20250818":
+            addBeta("context-management-2025-06-27")
+            prepared.tools.append(.object(["type": "memory_20250818", "name": "memory"]))
+        case "anthropic.web_fetch_20250910":
+            addBeta("web-fetch-2025-09-10")
+            prepared.tools.append(anthropicWebTool(type: "web_fetch_20250910", name: "web_fetch", args: args, includeFetchFields: true))
+        case "anthropic.web_fetch_20260209":
+            addBeta("code-execution-web-tools-2026-02-09")
+            prepared.tools.append(anthropicWebTool(type: "web_fetch_20260209", name: "web_fetch", args: args, includeFetchFields: true))
+        case "anthropic.web_fetch_20260318":
+            try anthropicValidateWebTool20260318ResponseInclusion(args["responseInclusion"], toolName: name)
+            prepared.tools.append(anthropicWebTool(type: "web_fetch_20260318", name: "web_fetch", args: args, includeFetchFields: true))
+        case "anthropic.web_search_20250305":
+            prepared.tools.append(anthropicWebTool(type: "web_search_20250305", name: "web_search", args: args, includeFetchFields: false))
+        case "anthropic.web_search_20260209":
+            addBeta("code-execution-web-tools-2026-02-09")
+            prepared.tools.append(anthropicWebTool(type: "web_search_20260209", name: "web_search", args: args, includeFetchFields: false))
+        case "anthropic.web_search_20260318":
+            try anthropicValidateWebTool20260318ResponseInclusion(args["responseInclusion"], toolName: name)
+            prepared.tools.append(anthropicWebTool(type: "web_search_20260318", name: "web_search", args: args, includeFetchFields: false))
+        case "anthropic.tool_search_regex_20251119":
+            prepared.tools.append(.object(["type": "tool_search_tool_regex_20251119", "name": "tool_search_tool_regex"]))
+        case "anthropic.tool_search_bm25_20251119":
+            prepared.tools.append(.object(["type": "tool_search_tool_bm25_20251119", "name": "tool_search_tool_bm25"]))
+        case "anthropic.advisor_20260301":
+            addBeta("advisor-tool-2026-03-01")
+            var tool: [String: JSONValue] = ["type": "advisor_20260301", "name": "advisor"]
+            tool["model"] = args["model"]
+            tool["max_uses"] = args["maxUses"]
+            if let maxTokens = args["maxTokens"] {
+                guard let value = maxTokens.doubleValue,
+                      value.isFinite,
+                      value.rounded(.towardZero) == value,
+                      value >= 1_024 else {
+                    throw AIError.invalidArgument(
+                        argument: "tools.\(name).args.maxTokens",
+                        message: "Anthropic advisor maxTokens must be an integer greater than or equal to 1024."
+                    )
+                }
+                tool["max_tokens"] = .number(value)
+            }
+            tool["caching"] = args["caching"]
+            prepared.tools.append(.object(tool.compactMapValues { $0 }))
+        default:
+            prepared.warnings.append(AIWarning(type: "unsupported", feature: "provider-defined tool \(id)"))
+        }
+    }
+    let requestedChoiceType = toolChoice?["type"]?.stringValue ?? toolChoice?.stringValue
+    if rejectsForcedToolUse, requestedChoiceType == "required" || requestedChoiceType == "any" {
+        prepared.warnings.append(AIWarning(
+            type: "unsupported",
+            feature: "toolChoice",
+            message: "toolChoice 'required' is not supported with this model or thinking configuration. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made."
+        ))
+        prepared.toolChoice = anthropicToolChoice(from: .object(["type": .string("auto")]), disableParallelToolUse: disableParallelToolUse).value
+    } else if rejectsForcedToolUse, requestedChoiceType == "tool" {
+        let selectedName = toolChoice?["toolName"]?.stringValue ?? toolChoice?["name"]?.stringValue ?? ""
+        prepared.warnings.append(AIWarning(
+            type: "unsupported",
+            feature: "toolChoice",
+            message: "toolChoice 'tool' is not supported with this model or thinking configuration. Only the '\(selectedName)' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made."
+        ))
+        prepared.tools = prepared.tools.filter { $0["name"]?.stringValue == selectedName }
+        prepared.toolChoice = anthropicToolChoice(from: .object(["type": .string("auto")]), disableParallelToolUse: disableParallelToolUse).value
+    } else {
+        let choice = anthropicToolChoice(from: toolChoice, disableParallelToolUse: disableParallelToolUse)
+        if choice.omitTools {
+            prepared.tools = []
+            prepared.toolChoice = nil
+        } else if !prepared.tools.isEmpty {
+            prepared.toolChoice = choice.value
+        }
+    }
+    return prepared
+}
+
+func anthropicComputerTool(type: String, args: [String: JSONValue], includeZoom: Bool = false) -> JSONValue {
+    var tool: [String: JSONValue] = [
+        "type": .string(type),
+        "name": .string("computer")
+    ]
+    tool["display_width_px"] = args["displayWidthPx"]
+    tool["display_height_px"] = args["displayHeightPx"]
+    tool["display_number"] = args["displayNumber"]
+    if includeZoom {
+        tool["enable_zoom"] = args["enableZoom"]
+    }
+    return .object(tool.compactMapValues { $0 })
+}
+
+func anthropicWebTool(type: String, name: String, args: [String: JSONValue], includeFetchFields: Bool) -> JSONValue {
+    var tool: [String: JSONValue] = [
+        "type": .string(type),
+        "name": .string(name)
+    ]
+    tool["max_uses"] = args["maxUses"]
+    tool["allowed_domains"] = args["allowedDomains"]
+    tool["blocked_domains"] = args["blockedDomains"]
+    if includeFetchFields {
+        tool["citations"] = args["citations"]
+        tool["max_content_tokens"] = args["maxContentTokens"]
+        tool["use_cache"] = args["useCache"]
+    } else {
+        tool["user_location"] = args["userLocation"]
+    }
+    tool["response_inclusion"] = args["responseInclusion"]
+    return .object(tool.compactMapValues { $0 })
+}
+
+func anthropicValidateWebTool20260318ResponseInclusion(_ value: JSONValue?, toolName: String) throws {
+    guard let value else { return }
+    guard let responseInclusion = value.stringValue,
+          responseInclusion == "full" || responseInclusion == "excluded" else {
+        throw AIError.invalidArgument(
+            argument: "tools.\(toolName).args.responseInclusion",
+            message: "Anthropic responseInclusion must be \"full\" or \"excluded\"."
+        )
+    }
+}
+
+func anthropicHasDynamicFilteringWebToolWithoutCodeExecution(_ tools: [JSONValue]) -> Bool {
+    var hasDynamicFilteringWebTool = false
+    var hasCodeExecutionTool = false
+    for tool in tools {
+        switch tool["type"]?.stringValue {
+        case "web_fetch_20260209", "web_fetch_20260318", "web_search_20260209", "web_search_20260318":
+            hasDynamicFilteringWebTool = true
+        case "code_execution_20250522", "code_execution_20250825", "code_execution_20260120":
+            hasCodeExecutionTool = true
+        default:
+            break
+        }
+    }
+    return hasDynamicFilteringWebTool && !hasCodeExecutionTool
+}
+
+public func anthropicToolChoice(from value: JSONValue?, disableParallelToolUse: Bool?) -> (value: JSONValue?, omitTools: Bool) {
+    guard let value else {
+        guard let disableParallelToolUse, disableParallelToolUse else {
+            return (nil, false)
+        }
+        return (.object([
+            "type": .string("auto"),
+            "disable_parallel_tool_use": .bool(disableParallelToolUse)
+        ]), false)
+    }
+
+    let type = value["type"]?.stringValue ?? value.stringValue
+    var object: [String: JSONValue]
+    switch type {
+    case "auto":
+        object = ["type": .string("auto")]
+    case "required", "any":
+        object = ["type": .string("any")]
+    case "none":
+        return (.object(["type": .string("none")]), false)
+    case "tool":
+        object = ["type": .string("tool")]
+        if let name = value["toolName"]?.stringValue ?? value["name"]?.stringValue {
+            object["name"] = .string(name)
+        }
+    default:
+        return (nil, false)
+    }
+    if let disableParallelToolUse {
+        object["disable_parallel_tool_use"] = .bool(disableParallelToolUse)
+    }
+    return (.object(object), false)
+}
+
+func anthropicHeaders(_ requestHeaders: [String: String], configHeaders: [String: String], betas: [String]) -> [String: String] {
+    guard !betas.isEmpty else { return requestHeaders }
+    var betaValues: [String] = []
+    for source in [configHeaders["anthropic-beta"], requestHeaders["anthropic-beta"]] {
+        for beta in source?.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) ?? [] where !beta.isEmpty && !betaValues.contains(beta) {
+            betaValues.append(beta)
+        }
+    }
+    for beta in betas where !betaValues.contains(beta) {
+        betaValues.append(beta)
+    }
+    var headers = requestHeaders
+    headers["anthropic-beta"] = betaValues.joined(separator: ",")
+    return headers
+}
+
+func anthropicModelSupportsStructuredOutput(_ modelID: String) -> Bool {
+    anthropicModelCapabilities(modelID).supportsStructuredOutput
+}
+
+func anthropicProviderReferenceKey(from providerID: String) -> String {
+    if providerID.hasPrefix("anthropic-aws") {
+        return "anthropic-aws"
+    }
+    return "anthropic"
+}
