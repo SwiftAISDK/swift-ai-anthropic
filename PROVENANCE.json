@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-anthropic",
-  "version": "1.0.0",
-  "releaseID": "modular-pilot",
+  "version": "1.1.0",
+  "releaseID": "modular-3",
   "source": {
-    "commit": "f91f47882ebaba0d602474fdd5ddc9f249eecce2",
-    "baseCommit": "f91f47882ebaba0d602474fdd5ddc9f249eecce2",
+    "commit": "7fc9b4cd72f8f83b75ba7eee2e38d37127539317",
+    "baseCommit": "7fc9b4cd72f8f83b75ba7eee2e38d37127539317",
     "workingTree": false,
-    "inputsSHA256": "9c1a85dfc8ba0dcbd4490ba630563ccf8f4888c8d4443f04fe0ccd406af10dda"
+    "inputsSHA256": "49b802ba4a30454f78c9886ab3114537ef659ab3e6db7775479b7351f6e3f0ab"
   },
   "dependencies": [
     {
@@ -17,9 +17,9 @@
   ],
   "changes": [
     {
-      "id": "modular-pilot",
-      "notes": "Standalone Anthropic Messages, tools, batches, upload and skills with typed settings.",
-      "compatibility": "New release unit at 1.0.0; legacy settings overloads remain in the canonical compatibility facade."
+      "id": "remaining-package-extraction",
+      "notes": "Allow a host adapter to select the Files provider namespace explicitly.",
+      "compatibility": "Existing initializer remains unchanged. Anthropic AWS hosting requires Anthropic from 1.1.0."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-anthropic",
@@ -77,7 +77,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicFiles.swift",
-      "sha256": "c8c29c0e878fc4ddfa6fc8ce8ddc2d09950b0a446d95266e9682021b67f4a69f"
+      "sha256": "36bf5828fa4c8af44bf63a77aa4a28f613588e5b164ac4c4e41fa07470dcdbeb"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicModels.swift",

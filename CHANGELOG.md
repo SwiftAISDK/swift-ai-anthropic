@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0
+## 1.1.0
 
-- Standalone Anthropic Messages, tools, batches, upload and skills with typed settings.
-  Compatibility: New release unit at 1.0.0; legacy settings overloads remain in the canonical compatibility facade.
+- Allow a host adapter to select the Files provider namespace explicitly.
+  Compatibility: Existing initializer remains unchanged. Anthropic AWS hosting requires Anthropic from 1.1.0.

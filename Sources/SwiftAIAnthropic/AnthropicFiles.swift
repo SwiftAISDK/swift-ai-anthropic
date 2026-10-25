@@ -6,10 +6,19 @@ import SwiftAIProviderUtilities
 /// Anthropic Files upload. Streaming uploads and file management are not supported.
 public final class AnthropicFileClient: AIFileClient, Sendable {
     public let providerID: String
+    private let providerReferenceKey: String
     private let config: AnthropicModelConfiguration
 
     public init(providerID: String = "anthropic.messages", config: AnthropicModelConfiguration) {
         self.providerID = providerID
+        self.providerReferenceKey = "anthropic"
+        self.config = config
+    }
+
+    /// Uses Anthropic's upload wire format for a hosting provider's namespace.
+    public init(providerID: String, providerReferenceKey: String, config: AnthropicModelConfiguration) {
+        self.providerID = providerID
+        self.providerReferenceKey = providerReferenceKey
         self.config = config
     }
 
@@ -39,12 +48,12 @@ public final class AnthropicFileClient: AIFileClient, Sendable {
             guard (200..<300).contains(response.statusCode) else { throw apiCallError(provider: providerID, response: response) }
             let raw = try response.jsonValue()
             return FileUploadResult(
-                providerReference: ["anthropic": raw["id"]?.stringValue ?? raw["file"]?["id"]?.stringValue ?? ""],
+                providerReference: [providerReferenceKey: raw["id"]?.stringValue ?? raw["file"]?["id"]?.stringValue ?? ""],
                 filename: raw["filename"]?.stringValue ?? request.filename,
                 mediaType: raw["mime_type"]?.stringValue ?? request.mediaType,
                 metadata: fileMetadata(from: raw), rawValue: raw,
                 warnings: multipartFileUploadWarnings(request, includePurpose: false),
-                providerMetadata: ["anthropic": fileProviderMetadata(from: raw)],
+                providerMetadata: [providerReferenceKey: fileProviderMetadata(from: raw)],
                 requestMetadata: multipartFileUploadRequestMetadata(request, includePurpose: false, defaultFilename: filename, options: .init()),
                 responseMetadata: aiResponseMetadata(from: raw, response: response)
             )
