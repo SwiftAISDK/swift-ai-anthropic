@@ -233,35 +233,63 @@ public struct AnthropicStreamingSources {
 }
 
 public struct AnthropicStreamingJSONToolText {
-    public init() {}
+    private let providerID: String
+    private let captureFallbackText: Bool
     private var indexes: Set<Int> = []
+    private var heldText: [(index: Int, text: String, citations: [JSONValue])] = []
+    private var usedJSONTool = false
+    private var stopReason: String?
 
-    public mutating func apply(event raw: JSONValue) -> [LanguageStreamPart] {
+    public init(providerID: String = "anthropic", captureFallbackText: Bool = false) {
+        self.providerID = providerID
+        self.captureFallbackText = captureFallbackText
+    }
+
+    public mutating func apply(event raw: JSONValue, citationDocuments: [AnthropicCitationDocument] = []) -> [LanguageStreamPart] {
         switch raw["type"]?.stringValue {
-        case "content_block_start":
-            guard let index = raw["index"]?.intValue,
-                  let block = raw["content_block"],
-                  block["type"]?.stringValue == "tool_use",
-                  block["name"]?.stringValue == "json" else {
-                return []
+        case "message_start":
+            stopReason = raw["message"]?["stop_reason"]?.stringValue
+            return []
+        case "message_delta":
+            if let reason = raw["delta"]?["stop_reason"]?.stringValue { stopReason = reason }
+            return []
+        case "message_stop":
+            defer { heldText.removeAll() }
+            guard captureFallbackText, !usedJSONTool, !["tool_use", "pause_turn"].contains(stopReason ?? "") else { return [] }
+            return heldText.flatMap { block -> [LanguageStreamPart] in
+                guard !block.text.isEmpty else { return [] }
+                let id = String(block.index)
+                let metadata = block.citations.isEmpty ? [:] : anthropicContentBlockProviderMetadata(["citations": .array(block.citations)], providerID: providerID)
+                return [
+                    .textStart(id: id),
+                    .textDeltaPart(id: id, delta: block.text),
+                    .textEnd(id: id, citations: block.citations.compactMap { anthropicMapCitation($0, documents: citationDocuments) }, providerMetadata: metadata)
+                ]
             }
+        case "content_block_start":
+            guard let index = raw["index"]?.intValue, let block = raw["content_block"] else { return [] }
+            let type = block["type"]?.stringValue ?? ""
+            if captureFallbackText {
+                if type == "text" {
+                    heldText.append((index, block["text"]?.stringValue ?? "", block["citations"]?.arrayValue ?? []))
+                } else if !["thinking", "redacted_thinking"].contains(type) { heldText.removeAll() }
+            }
+            guard type == "tool_use", block["name"]?.stringValue == "json" else { return [] }
+            usedJSONTool = true
             indexes.insert(index)
             return [.textStart(id: String(index))]
         case "content_block_delta":
-            guard let index = raw["index"]?.intValue,
-                  indexes.contains(index),
-                  raw["delta"]?["type"]?.stringValue == "input_json_delta" else {
-                return []
+            guard let index = raw["index"]?.intValue else { return [] }
+            if captureFallbackText, let position = heldText.firstIndex(where: { $0.index == index }) {
+                if raw["delta"]?["type"] == "text_delta" { heldText[position].text += raw["delta"]?["text"]?.stringValue ?? "" }
+                if raw["delta"]?["type"] == "citations_delta", let citation = raw["delta"]?["citation"] { heldText[position].citations.append(citation) }
             }
+            guard indexes.contains(index), raw["delta"]?["type"]?.stringValue == "input_json_delta" else { return [] }
             let delta = raw["delta"]?["partial_json"]?.stringValue ?? ""
             guard !delta.isEmpty else { return [] }
-            let id = String(index)
-            return [.textDeltaPart(id: id, delta: delta)]
+            return [.textDeltaPart(id: String(index), delta: delta)]
         case "content_block_stop":
-            guard let index = raw["index"]?.intValue,
-                  indexes.remove(index) != nil else {
-                return []
-            }
+            guard let index = raw["index"]?.intValue, indexes.remove(index) != nil else { return [] }
             return [.textEnd(id: String(index))]
         default:
             return []

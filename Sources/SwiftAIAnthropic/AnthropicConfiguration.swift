@@ -7,6 +7,8 @@ import SwiftAIProviderUtilities
 public struct AnthropicProviderSettings: Sendable {
     public var apiKey: String?
     public var authToken: String?
+    /// Called lazily before each Messages, Files, Skills or Batch request.
+    public var authTokenProvider: (@Sendable () async throws -> String)?
     public var baseURL: String?
     public var headers: [String: String]
     public var queryParams: [String: String]
@@ -20,8 +22,9 @@ public struct AnthropicProviderSettings: Sendable {
                 headers: [String: String] = [:], queryParams: [String: String] = [:],
                 environment: [String: String]? = nil, transport: any AITransport = URLSessionTransport.shared,
                 transformRequestBody: (@Sendable ([String: JSONValue]) -> [String: JSONValue])? = nil,
-                batchResultDownloads: AIBatchResultDownloadSettings? = nil, name: String? = nil) {
-        self.apiKey = apiKey; self.authToken = authToken; self.baseURL = baseURL
+                batchResultDownloads: AIBatchResultDownloadSettings? = nil, name: String? = nil,
+                authTokenProvider: (@Sendable () async throws -> String)? = nil) {
+        self.apiKey = apiKey; self.authToken = authToken; self.authTokenProvider = authTokenProvider; self.baseURL = baseURL
         self.headers = headers; self.queryParams = queryParams; self.environment = environment
         self.transport = transport; self.transformRequestBody = transformRequestBody
         self.batchResultDownloads = batchResultDownloads; self.name = name
@@ -46,6 +49,9 @@ public struct AnthropicModelConfiguration: Sendable {
     public var http: AIProviderHTTPClient
     public var transformRequestBody: (@Sendable ([String: JSONValue]) -> [String: JSONValue])?
     public var requestPolicy: (@Sendable (String) -> AnthropicRequestPolicy)?
+    /// Hosting adapters can disable native output formats and strict tools by default.
+    public var supportsNativeStructuredOutput: Bool?
+    public var supportsStrictTools: Bool?
     public var batchResultMaxLineBytes: Int?
 
     public init(baseURL: String, http: AIProviderHTTPClient,

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0
+## 1.2.0
 
-- Allow a host adapter to select the Files provider namespace explicitly.
-  Compatibility: Existing initializer remains unchanged. Anthropic AWS hosting requires Anthropic from 1.1.0.
+- Lazy per-request bearer authTokenProvider for Messages, streams, Batch, Files and Skills without eager calls or automatic OAuth beta. Hosting adapter flags for native structured output/strict tools. Forced-tool-rejecting models override hosting default only for lossless native schemas. Native-schema fallback guard detects local reference cycles, open objects/maps, and >10 total optional properties including repeated referenced definitions. Schema sanitization retains definitions alongside top-level $ref. JSON-tool direct-text fallback selects final text after tool activity; streaming buffers text and citations until terminal response and drops preambles or replaced text. Anthropic adaptive xhigh falls back to high when unsupported; Sonnet5.5 none reports between_tools compatibility warning. Reviewed upstream: @ai-sdk/anthropic 4.0.88 to 4.0.94. Validation passed: node Scripts/test-packages.mjs (all 52 owning package suites and the compatibility facade); node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); docs-site check and build (100 pages). Live provider calls were not run.
+  Compatibility: Minor release for additive native API; existing static settings and call sites remain compatible. Updated direct dependency minimums are recorded in the manifest. Existing documented JS/framework and native product gaps remain; version-delta review does not imply full parity or live-service testing. Explicit custom authentication skips an unused credential supplier, a deliberate native callback-order adaptation.

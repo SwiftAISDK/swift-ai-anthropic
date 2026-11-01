@@ -508,7 +508,10 @@ func anthropicReasoningConfig(
     warnings: inout [AIWarning]
 ) -> (thinking: JSONValue, effort: String?)? {
     if reasoning == "none" {
-        if capabilities.supportsBetweenToolsThinking { return (["type": "between_tools"], nil) }
+        if capabilities.supportsBetweenToolsThinking {
+            warnings.append(AIWarning(type: "compatibility", feature: "reasoning", message: "reasoning 'none' is not supported by \(modelID); thinking cannot be disabled. Using 'between_tools' thinking, the lowest thinking setting, instead."))
+            return (["type": "between_tools"], nil)
+        }
         if capabilities.rejectsThinkingDisabled {
             warnings.append(AIWarning(
                 type: "compatibility",
@@ -521,29 +524,9 @@ func anthropicReasoningConfig(
     }
 
     if capabilities.supportsAdaptiveThinking {
-        let effortMap: [String: String] = [
-            "minimal": "low",
-            "low": "low",
-            "medium": "medium",
-            "high": "high",
-            "xhigh": capabilities.supportsXhighEffort ? "xhigh" : "max",
-            "max": "max"
-        ]
-        guard let effort = effortMap[reasoning] else {
-            warnings.append(AIWarning(
-                type: "unsupported",
-                feature: "reasoning",
-                message: "reasoning \"\(reasoning)\" is not supported by this model."
-            ))
-            return nil
-        }
-        if effort != reasoning {
-            warnings.append(AIWarning(
-                type: "compatibility",
-                feature: "reasoning",
-                message: "reasoning \"\(reasoning)\" is not directly supported by this model. mapped to effort \"\(effort)\"."
-            ))
-        }
+        var effortMap = ["low": "low", "medium": "medium", "high": "high", "max": "max"]
+        if capabilities.supportsXhighEffort { effortMap["xhigh"] = "xhigh" }
+        guard let effort = mapReasoningToProviderEffort(reasoning: reasoning, effortMap: effortMap, warnings: &warnings) else { return nil }
         return (["type": "adaptive", "display": "summarized"], effort)
     }
 
@@ -654,6 +637,7 @@ func anthropicApplyResponseFormat(
     _ responseFormat: AIResponseFormat?,
     to body: inout [String: JSONValue],
     supportsStructuredOutput: Bool,
+    modelSupportsStructuredOutput: Bool,
     structuredOutputMode: String?,
     rejectsForcedToolUse: Bool,
     modelID: String,
@@ -676,7 +660,7 @@ func anthropicApplyResponseFormat(
         }
         var useNativeOutputFormat = structuredOutputMode == "outputFormat"
             || (structuredOutputMode != "jsonTool" && supportsStructuredOutput)
-        if !useNativeOutputFormat, rejectsForcedToolUse, supportsStructuredOutput {
+        if !useNativeOutputFormat, rejectsForcedToolUse, modelSupportsStructuredOutput, anthropicSupportsNativeStructuredOutputSchema(schema) {
             warnings.append(AIWarning(
                 type: "unsupported",
                 feature: "providerOptions.anthropic.structuredOutputMode",
@@ -701,7 +685,7 @@ func anthropicApplyResponseFormat(
             ].filter { key, _ in key != "eager_input_streaming" || eagerInputStreaming }))
             body["tools"] = .array(tools)
             body["tool_choice"] = .object([
-                "type": .string(body["thinking"]?["type"]?.stringValue == "enabled" ? "auto" : "any"),
+                "type": .string(rejectsForcedToolUse || body["thinking"]?["type"]?.stringValue == "enabled" ? "auto" : "any"),
                 "disable_parallel_tool_use": true
             ])
             if body["thinking"]?["type"]?.stringValue == "enabled" {
@@ -728,7 +712,13 @@ public func anthropicSanitizeJSONSchema(_ schema: JSONValue) -> JSONValue {
         return schema
     }
     if let ref = object["$ref"] {
-        return .object(["$ref": ref])
+        var result: [String: JSONValue] = ["$ref": ref]
+        for key in ["definitions", "$defs"] {
+            if let definitions = object[key]?.objectValue {
+                result[key] = .object(definitions.mapValues(anthropicSanitizeJSONSchemaDefinition))
+            }
+        }
+        return .object(result)
     }
 
     var result: [String: JSONValue] = [:]

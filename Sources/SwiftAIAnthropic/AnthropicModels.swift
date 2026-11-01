@@ -336,7 +336,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
     }
 
     public func generate(_ request: LanguageModelRequest) async throws -> TextGenerationResult {
-        let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, policy: config.requestPolicy?(modelID) ?? .init())
+        let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, policy: config.requestPolicy?(modelID) ?? .init())
         var body = preparedRequest.body
         body["stream"] = nil
         let path: String
@@ -370,7 +370,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             citationDocuments: anthropicCitationDocuments(from: request.messages),
             usesJSONToolResponseFormat: preparedRequest.usesJSONToolResponseFormat,
             toolNameMapping: preparedRequest.toolNameMapping,
-            markCodeExecutionDynamic: preparedRequest.markCodeExecutionDynamic
+            markCodeExecutionDynamic: preparedRequest.markCodeExecutionDynamic,
+            stopReason: raw["stop_reason"]?.stringValue
         )
         guard let text = generatedContent.text else {
             throw AIError.invalidResponse(provider: providerID, message: "No text block found in Anthropic response.")
@@ -395,7 +396,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, stream: true, policy: config.requestPolicy?(modelID) ?? .init())
+                    let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, stream: true, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, policy: config.requestPolicy?(modelID) ?? .init())
                     var body = preparedRequest.body
                     let path: String
                     if providerID == "googleVertex.anthropic.messages" {
@@ -453,7 +454,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                         providerID: providerID,
                         ignoresTextBlocks: preparedRequest.usesJSONToolResponseFormat
                     )
-                    var jsonToolText = AnthropicStreamingJSONToolText()
+                    var jsonToolText = AnthropicStreamingJSONToolText(providerID: providerID, captureFallbackText: preparedRequest.usesJSONToolResponseFormat)
                     var providerToolResults = AnthropicStreamingProviderToolResults(
                         providerID: providerID,
                         toolNameMapping: preparedRequest.toolNameMapping
@@ -589,7 +590,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                         for part in contentBlocks.apply(event: raw, citationDocuments: streamingSources.citationDocuments) {
                             emit(part)
                         }
-                        for part in jsonToolText.apply(event: raw) {
+                        for part in jsonToolText.apply(event: raw, citationDocuments: streamingSources.citationDocuments) {
                             emit(part)
                         }
                         for part in providerToolResults.apply(event: raw) {
@@ -737,10 +738,10 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             warnings: &warnings
         )
         let usesJSONResponseTool: Bool
-        if case let .json(schema, _, _) = request.responseFormat, schema != nil {
+        if case let .json(schema, _, _) = request.responseFormat, let schema {
             usesJSONResponseTool = providerOptions.structuredOutputMode != "outputFormat"
                 && (providerOptions.structuredOutputMode == "jsonTool" || !supportsStructuredOutput)
-                && !(capabilities.rejectsForcedToolUse && supportsStructuredOutput)
+                && !(capabilities.rejectsForcedToolUse && capabilities.supportsStructuredOutput && anthropicSupportsNativeStructuredOutputSchema(schema))
         } else {
             usesJSONResponseTool = false
         }
@@ -766,6 +767,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             request.responseFormat,
             to: &body,
             supportsStructuredOutput: supportsStructuredOutput,
+            modelSupportsStructuredOutput: capabilities.supportsStructuredOutput,
             structuredOutputMode: providerOptions.structuredOutputMode,
             rejectsForcedToolUse: capabilities.rejectsForcedToolUse,
             modelID: modelID,

@@ -12,12 +12,13 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
     private let skillsProviderID: String
 
     public init(configuration settings: AnthropicProviderSettings) throws {
-        if settings.apiKey != nil, settings.authToken != nil {
+        if settings.apiKey != nil, settings.authToken != nil || settings.authTokenProvider != nil {
             throw AIError.invalidArgument(argument: "apiKey/authToken", message: "Both apiKey and authToken were provided. Please use only one authentication method.")
         }
-        var headers = settings.headers
-        if let authToken = settings.authToken {
-            headers["Authorization"] = headers["Authorization"] ?? "Bearer \(authToken)"
+        let credentialResolver = settings.authTokenProvider.map(AIAsyncCredential.init)
+        var headers = normalizeHeaders(settings.headers)
+        if let authToken = credentialResolver?.placeholder ?? settings.authToken {
+            headers["authorization"] = headers["authorization"] ?? "Bearer \(authToken)"
         } else {
             let key = settings.apiKey ?? settings.environmentValue(["ANTHROPIC_API_KEY"])
             guard let key else {
@@ -25,11 +26,11 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             }
             headers["x-api-key"] = headers["x-api-key"] ?? key
         }
-        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.88")
+        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.94")
         headers["anthropic-version"] = headers["anthropic-version"] ?? "2023-06-01"
         languageProviderID = settings.name ?? "anthropic.messages"
         skillsProviderID = anthropicSkillsProviderID(from: languageProviderID)
-        config = AnthropicModelConfiguration(
+        var config = AnthropicModelConfiguration(
             providerID: providerID,
             baseURL: anthropicNormalizedBaseURL(settings.baseURL ?? settings.environmentValue(["ANTHROPIC_BASE_URL"])),
             headers: headers,
@@ -38,6 +39,8 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             transformRequestBody: settings.transformRequestBody,
             batchResultMaxLineBytes: settings.batchResultDownloads?.maxLineBytes
         )
+        config.http.credentialResolver = credentialResolver
+        self.config = config
     }
 
     public func languageModel(_ modelID: String) throws -> any LanguageModel {

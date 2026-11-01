@@ -69,7 +69,9 @@ public final class AnthropicBatchLanguageModel: BatchLanguageModel, @unchecked S
             let prepared = try AnthropicLanguageModel.body(
                 for: request.request,
                 modelID: requestModelID,
-                providerID: providerID
+                providerID: providerID,
+                supportsNativeStructuredOutput: config.supportsNativeStructuredOutput,
+                supportsStrictTools: config.supportsStrictTools
             )
             if prepared.usesJSONToolResponseFormat {
                 throw AIError.invalidArgument(

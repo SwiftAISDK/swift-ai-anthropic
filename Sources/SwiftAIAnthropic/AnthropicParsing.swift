@@ -42,7 +42,8 @@ public func anthropicGeneratedContent(
     usesJSONToolResponseFormat: Bool = false,
     toolNameMapping: AIToolNameMapping = AIToolNameMapping(),
     markCodeExecutionDynamic: Bool = false,
-    isBatchResult: Bool = false
+    isBatchResult: Bool = false,
+    stopReason: String? = nil
 ) -> AnthropicGeneratedContent {
     guard let parts = value?.arrayValue else {
         return AnthropicGeneratedContent(
@@ -70,7 +71,15 @@ public func anthropicGeneratedContent(
         $0["type"]?.stringValue == "web_search_tool_result" && $0["content"]?.arrayValue?.isEmpty == false
     }
 
-    for part in parts {
+    var fallbackTextIndexes: Set<Int> = []
+    if usesJSONToolResponseFormat, !["tool_use", "pause_turn"].contains(stopReason ?? ""),
+       !parts.contains(where: { $0["type"] == "tool_use" && $0["name"] == "json" }) {
+        for (index, part) in parts.enumerated() {
+            if part["type"] == "text" { fallbackTextIndexes.insert(index) }
+            else if !["redacted_thinking", "thinking"].contains(part["type"]?.stringValue ?? "") { fallbackTextIndexes.removeAll() }
+        }
+    }
+    for (index, part) in parts.enumerated() {
         guard let type = part["type"]?.stringValue else { continue }
 
         if type == "server_tool_use",
@@ -118,7 +127,7 @@ public func anthropicGeneratedContent(
                 )
             ))
         case "text":
-            guard !usesJSONToolResponseFormat else { continue }
+            guard !usesJSONToolResponseFormat || fallbackTextIndexes.contains(index) else { continue }
             let partText = part["text"]?.stringValue ?? ""
             text += partText
             let citations = part["citations"]?.arrayValue ?? []

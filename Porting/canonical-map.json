@@ -13,16 +13,21 @@
         "packages/anthropic/src/anthropic-decision.test.ts",
         "packages/anthropic/src/anthropic-error.test.ts",
         "packages/anthropic/src/anthropic-files.test.ts",
+        "packages/anthropic/src/anthropic-forced-tool-structured-output.test.ts",
+        "packages/anthropic/src/anthropic-json-response-tool-fallback.test.ts",
         "packages/anthropic/src/anthropic-language-model.test.ts",
         "packages/anthropic/src/anthropic-message-lifecycle.test.ts",
         "packages/anthropic/src/anthropic-prepare-tools.test.ts",
+        "packages/anthropic/src/anthropic-provider.test-d.ts",
         "packages/anthropic/src/anthropic-provider.test.ts",
         "packages/anthropic/src/anthropic-unknown-model-max-output-tokens.test.ts",
         "packages/anthropic/src/convert-anthropic-usage.test.ts",
         "packages/anthropic/src/convert-to-anthropic-prompt.test.ts",
+        "packages/anthropic/src/has-circular-schema-reference.test.ts",
         "packages/anthropic/src/lazy-schemas.test.ts",
         "packages/anthropic/src/sanitize-json-schema.test.ts",
         "packages/anthropic/src/skills/anthropic-skills.test.ts",
+        "packages/anthropic/src/supports-native-structured-output-schema.test.ts",
         "packages/anthropic/src/tool/bash_20241022.test.ts",
         "packages/anthropic/src/tool/bash_20250124.test.ts"
       ]
@@ -39,6 +44,7 @@
       "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicProvider.swift",
       "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicSkills.swift",
       "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicStreaming.swift",
+      "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicStructuredOutputSchema.swift",
       "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicToolPreparation.swift",
       "Sources/SwiftAISDK/Providers/AnthropicProvider.swift"
     ],
@@ -64,6 +70,8 @@
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicUsageUpstreamParityTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/FixtureDownloadTransport.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/TestSupport.swift",
+      "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261101AuthTests.swift",
+      "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261101StructuredOutputTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/WeeklyAnthropic20261023Tests.swift"
     ],
     "resources": []
@@ -72,7 +80,11 @@
     {
       "kind": "native-adaptation",
       "reason": "Preserve Swift async/await, Sendable, Foundation transport and existing documented gaps; see Docs/CoreV6Parity.md and PortingStatus.md."
+    },
+    {
+      "kind": "native-adaptation",
+      "reason": "2026-11-01 reviewed 4.0.88 -> 4.0.94; integrity-verified archives and package/version-checked matching-release tests 612be2311464804d1e4897afacbf8f3fc2f6d9e3 -> 028a025398782f4938303f48fbeee45c79af544b. Ported forced-tool/native-schema policy, cycle/open-map/optional-count validation, top-level ref definitions, final JSON-tool fallback text/citations and lazy refreshable bearer auth; tests Weekly20261101Auth/StructuredOutput and updated reasoning assertions. Internal catalog reorganization is represented by existing native capability policy. Workflow serialization and JS sandbox mocks remain out of scope. Native one-response stream boundary remains deliberate; no multi-message parity claim."
     }
   ],
-  "reviewNote": "Imported M0 file ownership and upstream test inventory. These are candidate relationships, not claims that every listed upstream test is ported; refine into behavior mappings during extraction."
+  "reviewNote": "Imported M0 file ownership and upstream test inventory. These are candidate relationships, not claims that every listed upstream test is ported; refine into behavior mappings during extraction. 2026-11-01 reviewed 4.0.88 -> 4.0.94; integrity-verified archives and package/version-checked matching-release tests 612be2311464804d1e4897afacbf8f3fc2f6d9e3 -> 028a025398782f4938303f48fbeee45c79af544b. Ported forced-tool/native-schema policy, cycle/open-map/optional-count validation, top-level ref definitions, final JSON-tool fallback text/citations and lazy refreshable bearer auth; tests Weekly20261101Auth/StructuredOutput and updated reasoning assertions. Internal catalog reorganization is represented by existing native capability policy. Workflow serialization and JS sandbox mocks remain out of scope. Native one-response stream boundary remains deliberate; no multi-message parity claim."
 }

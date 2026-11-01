@@ -10,7 +10,7 @@ let package = Package(
         .library(name: "SwiftAIAnthropic", targets: ["SwiftAIAnthropic"])
     ],
     dependencies: [
-        .package(url: "https://github.com/SwiftAISDK/swift-ai-core.git", from: "1.0.0")
+        .package(url: "https://github.com/SwiftAISDK/swift-ai-core.git", from: "1.2.0")
     ],
     targets: [
         .target(name: "SwiftAIAnthropic", dependencies: [.product(name: "SwiftAIProvider", package: "swift-ai-core"), .product(name: "SwiftAITransport", package: "swift-ai-core"), .product(name: "SwiftAIProviderUtilities", package: "swift-ai-core")]),

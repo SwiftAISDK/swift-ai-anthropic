@@ -26,11 +26,11 @@ import Testing
 
     let xhigh = try await anthropicGeneratedBody(modelID: "claude-sonnet-4-6", reasoning: "xhigh")
     #expect(xhigh.body["thinking"] == ["type": "adaptive", "display": "summarized"])
-    #expect(xhigh.body["output_config"]?["effort"]?.stringValue == "max")
+    #expect(xhigh.body["output_config"]?["effort"]?.stringValue == "high")
     #expect(xhigh.warnings.contains(AIWarning(
         type: "compatibility",
         feature: "reasoning",
-        message: "reasoning \"xhigh\" is not directly supported by this model. mapped to effort \"max\"."
+        message: "reasoning \"xhigh\" is not directly supported by this model. mapped to effort \"high\"."
     )))
 
     let minimal = try await anthropicGeneratedBody(modelID: "claude-opus-4-6", reasoning: "minimal")
@@ -162,7 +162,7 @@ import Testing
 
     let opus46 = try await anthropicGeneratedBody(modelID: "claude-opus-4-6", reasoning: "xhigh")
     #expect(opus46.body["thinking"] == ["type": "adaptive", "display": "summarized"])
-    #expect(opus46.body["output_config"]?["effort"]?.stringValue == "max")
+    #expect(opus46.body["output_config"]?["effort"]?.stringValue == "high")
 
     let taskBudget = try await anthropicGeneratedBody(
         modelID: "claude-opus-4-7",
