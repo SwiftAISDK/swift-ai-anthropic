@@ -82,7 +82,7 @@ import Testing
     #expect(request.url.absoluteString == "https://api.anthropic.com/v1/messages/batches")
     #expect(request.headers["x-api-key"] == "test-api-key")
     #expect(request.headers["operation-header"] == "operation")
-    #expect(request.headers["user-agent"] == "ai/7.0.159")
+    #expect(request.headers["user-agent"] == "ai/7.0.165")
     let betaHeader = try #require(request.headers["anthropic-beta"])
     let betas = Set(betaHeader.split(separator: ",").map(String.init))
     #expect(betas.contains("batch-beta"))
@@ -684,5 +684,17 @@ private actor AnthropicBatchRedirectTransport: FixtureStreamingDownloadTransport
                 continuation.finish()
             }
         )
+    }
+}
+
+@Test func weekly20261108AnthropicBatchPreservesAppliedServiceTier() async throws {
+    let status = anthropicBatchResponse(status: "ended", resultsURL: "https://api.anthropic.com/v1/messages/batches/msgbatch_123/results")
+    let line = #"{"custom_id":"tier","result":{"type":"succeeded","message":{"id":"msg_tier","type":"message","model":"claude-sonnet-4-6","content":[],"stop_reason":"end_turn","usage":{"input_tokens":1,"output_tokens":1,"service_tier":"batch"}}}}"#
+    let transport = AnthropicBatchScriptedTransport(sendResponses: [jsonResponse(status)], streamChunks: [Data((line + "\n").utf8)])
+    let model = try AIProviders.anthropic(configuration: .init(apiKey: "key", transport: transport)).batchLanguageModel("claude-sonnet-4-6")
+    let stream = try await model.getBatchResults(.init(batchID: "msgbatch_123"))
+    for try await item in stream {
+        guard case let .succeeded(_, result) = item else { Issue.record("Expected succeeded item"); return }
+        #expect(result.providerMetadata["anthropic"]?["serviceTier"] == "batch")
     }
 }

@@ -52,6 +52,8 @@ public struct AnthropicModelConfiguration: Sendable {
     /// Hosting adapters can disable native output formats and strict tools by default.
     public var supportsNativeStructuredOutput: Bool?
     public var supportsStrictTools: Bool?
+    /// Explicit opt-in for platforms implementing Anthropic message threads.
+    public var supportsMessageThreads: Bool = false
     public var batchResultMaxLineBytes: Int?
 
     public init(baseURL: String, http: AIProviderHTTPClient,

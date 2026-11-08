@@ -1,44 +1,45 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-anthropic",
-  "version": "1.2.0",
-  "releaseID": "weekly-upstream-20261101",
+  "version": "1.3.0",
+  "releaseID": "weekly-upstream-20261108",
   "source": {
-    "commit": "ea057797494ab9bb66df8c6bfd8edc10245b20e7",
-    "baseCommit": "ea057797494ab9bb66df8c6bfd8edc10245b20e7",
+    "commit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
+    "baseCommit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
     "workingTree": false,
-    "inputsSHA256": "b46f3e07b0a583d6fee81035987d74a06fc5c6109cbdf228144d1172d2c3676e"
+    "inputsSHA256": "987359720075cb67dd8bc45bdc049aee4c5d5a42b67a7eb148e697ce5d18bd77"
   },
   "dependencies": [
     {
       "package": "swift-ai-core",
-      "from": "1.2.0"
+      "from": "1.3.0"
     }
   ],
   "changes": [
     {
-      "id": "weekly-upstream-20261101",
-      "notes": "Lazy per-request bearer authTokenProvider for Messages, streams, Batch, Files and Skills without eager calls or automatic OAuth beta. Hosting adapter flags for native structured output/strict tools. Forced-tool-rejecting models override hosting default only for lossless native schemas. Native-schema fallback guard detects local reference cycles, open objects/maps, and >10 total optional properties including repeated referenced definitions. Schema sanitization retains definitions alongside top-level $ref. JSON-tool direct-text fallback selects final text after tool activity; streaming buffers text and citations until terminal response and drops preambles or replaced text. Anthropic adaptive xhigh falls back to high when unsupported; Sonnet5.5 none reports between_tools compatibility warning. Reviewed upstream: @ai-sdk/anthropic 4.0.88 to 4.0.94. Validation passed: node Scripts/test-packages.mjs (all 52 owning package suites and the compatibility facade); node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); docs-site check and build (100 pages). Live provider calls were not run.",
-      "compatibility": "Minor release for additive native API; existing static settings and call sites remain compatible. Updated direct dependency minimums are recorded in the manifest. Existing documented JS/framework and native product gaps remain; version-delta review does not imply full parity or live-service testing. Explicit custom authentication skips an unused credential supplier, a deliberate native callback-order adaptation."
+      "id": "weekly-upstream-20261108",
+      "notes": "Add message threads, Files CRUD/download, inline tool definitions/pings and optional metadata; correct tool/schema/admission/error policies. Reviewed published upstream delta: @ai-sdk/anthropic 4.0.94 to 4.0.99. Validation passed: node Scripts/test-packages.mjs (all 52 owning packages plus the complete local facade; 3,965 reported tests and 33 explicit live skips); node Scripts/sdk.mjs dev test; node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); core/provider isolation and version resolution; 52 deterministic package exports, 106 catalog consumers and four additional exact retained-minimum graphs; docs-site install/check/build (100 pages); git diff --check. No paid live-service calls were run. The publication pipeline requires successful Swift 6.3.3 CI at the exact canonical source before publishing.",
+      "compatibility": "Minor release for additive native functionality under the project convention. Existing call sites and exact old selectors are retained. Direct minimums change only for concrete API use or required inherited behavior. Version-delta review does not establish full-package parity or live-service acceptance. Updated direct ranges: swift-ai-core 1.2.0 to 1.3.0."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-anthropic",
   "upstream": [
     {
       "name": "@ai-sdk/anthropic",
-      "reviewedVersion": "4.0.94",
+      "reviewedVersion": "4.0.99",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json",
+      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-gD0KmsUZTRuhiYleM2SdMrY0c7m+VeRckLX2VVPnEAlQmaKqSw8+noHiK5ED+SHy4tuDf9VQqcHxlGeObzMNyw==",
-      "sourceRef": "npm:@ai-sdk/anthropic@4.0.94",
-      "testRef": "028a025398782f4938303f48fbeee45c79af544b",
+      "archiveIntegrity": "sha512-N5VA8soxdvb+eX5jKs7g+a0RahCXNnvnzT96/Hiqm+LxoLFO2U8dSYhWKrQjG1i04LM/itp8vCVl7RCn6Kvohg==",
+      "sourceRef": "npm:@ai-sdk/anthropic@4.0.99",
+      "testRef": "0f3a85f92d1ce06ccde01d662407ef83e097a712",
       "testRefRelationship": "matching-release",
       "contractFamilies": [
+        "DecisionModelV4",
         "LanguageModelV4",
         "ProviderV4"
       ],
-      "contractReview": "2026-11-01: published declarations, source and exact matching-release changed tests reviewed; scoped dispositions and Swift translations are in Docs/WeeklyUpstreamAudit20261101.json. Existing broader product gaps remain; reviewed delta is not full-package parity."
+      "contractReview": "2026-11-08: published declarations/source and exact matching-release changed tests reviewed; native implementations, per-file dispositions and broader retained gaps are recorded in Docs/WeeklyUpstreamAudit20261108.json. Reviewed delta is not full-package or live-service parity."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -61,39 +62,39 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Porting/map.json",
-      "sha256": "4b5b5ea957e5f5076d31cbedaf5ea9ff342ef569d201ca2fa45cda208a877b12"
+      "sha256": "d0bebe7375f14a26fd76f7f1298ddcfb7347ac56d0fc4104bc202d5d0f1c21a4"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/README.md",
-      "sha256": "67a35376bfd13aa2b020ba2775f7b48f3d3b04c8a647b758f5c9d9b1a38ccbf5"
+      "sha256": "57221181a5e8708f2d081465a7752163fc65692b886a2f27f0d33516e9b13e8a"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicBatchLanguageModel.swift",
-      "sha256": "8dd4c21102468c2470c1c24d51299bbec7f84f7eefad8ac177cf366ba2152cd9"
+      "sha256": "16af3bb708a449ee906c6e498f941ec35ae8cab3da3e2366030e2b3b47e2c117"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicConfiguration.swift",
-      "sha256": "14200ce9f1d94c3154f7556054e0b3820401c1bc3f9731c6776266c65ed00793"
+      "sha256": "8b975575ee987d64284f0ea2a8c4991c00909850619d8ad34a1c06e1fb6c8475"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicFiles.swift",
-      "sha256": "36bf5828fa4c8af44bf63a77aa4a28f613588e5b164ac4c4e41fa07470dcdbeb"
+      "sha256": "5da56f967ce5bce1a4a85aaee8957fdc076da39f161adbe514f6f59b5f276a49"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicModels.swift",
-      "sha256": "2baf24752efd35d27e34d3cf1ba7ef7e9f94b9bf5d7d5296e17f769a74734e70"
+      "sha256": "5aa934053fe602d41fec0c06729dc3eefd764510d893f5d266c47c55b70b8d0b"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicOptions.swift",
-      "sha256": "485e8784c0418309823020a0e5efb145baa3f496b803534ddfffecd9f494447c"
+      "sha256": "a90789a21404a5665955777a1e6690cef73e251c844609ab4b1b339494edbd44"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicParsing.swift",
-      "sha256": "40a8b8377a627781a56aa9d916422384a60884c26ef7e47b3e8e10348ea92122"
+      "sha256": "0cfd22c45fa471bff58cb6b33778bac85811d47b51d530c0da177c4e49873314"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicProvider.swift",
-      "sha256": "8ddee606caf602f5c56f97a025908aea5e316f82cffb5d0ff1eab575edd63b0c"
+      "sha256": "c55d2d4259cb4422bacdac31739f4c6e9628b336f0d881086445bbdb38147afd"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicSkills.swift",
@@ -101,19 +102,23 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicStreaming.swift",
-      "sha256": "e14c2b24d61952b608e377dab2cfe229035bf3b9c6699456e4076954622e1abc"
+      "sha256": "2763041708d075c8649b635e48a0115553f7d173db4507ec06245a419555f904"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicStructuredOutputSchema.swift",
-      "sha256": "5f189e4111253bdfbe2dd9b51b63c11525079eba78c3ecb3d67c9e5970be902a"
+      "sha256": "9688409ba40bfa0cfe6cf9652f2c0928ac815654cf081e78ac4ad3b34b0a4795"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicThreadAndToolChanges.swift",
+      "sha256": "16b1b3467b7a56ab8a26d1dcf32b3d266f57ae62cdcd16e61ccdd6ba88d50046"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicToolPreparation.swift",
-      "sha256": "3043879a2d0dd8eedbbb6806fe14edb19ff122d2f3c4f9da46ede02b74afc281"
+      "sha256": "dd20fae44ff0b754db859a51026b0710ddf71392ad233f8f0c28f14475d9a517"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicBatchV4UpstreamTests.swift",
-      "sha256": "b1d60b0b707806d8c8969fe3813f52b8623d8c891d4b3a23644534a0c45a5005"
+      "sha256": "7aaf31b1c77482fc1ae45ee3c33bb75f111d653995e5bd568c3039adfac26ceb"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",
@@ -202,6 +207,22 @@
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261101StructuredOutputTests.swift",
       "sha256": "6da1651c79eb6d76f92a8da80137b475d7868231fd9b61f8620c1fdf01835cf8"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261108FilesAndToolsetTests.swift",
+      "sha256": "eb9f0c729a5f41e65d4dd317e1ee47f33aef29914b88ca29ac8e0637b77361b9"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261108InlineToolsTests.swift",
+      "sha256": "f7700aaf0ae6bd7baeb9bc5713d4cc5e87c873fd801326dab9138d136d3cd236"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261108ProviderSelectorCompatibilityTests.swift",
+      "sha256": "0dcbefaff7e2fd4590fec43296302ec763d381154d09e3e499ec56c9f38da22e"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261108ThreadsAndTiersTests.swift",
+      "sha256": "9546e90c406a8fa043dc955d9077bd434643ffe12fd5c9cfde3475a2e1ea0123"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/WeeklyAnthropic20261023Tests.swift",

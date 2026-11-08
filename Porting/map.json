@@ -12,24 +12,32 @@
         "packages/anthropic/src/anthropic-batch.test.ts",
         "packages/anthropic/src/anthropic-decision.test.ts",
         "packages/anthropic/src/anthropic-error.test.ts",
-        "packages/anthropic/src/anthropic-files.test.ts",
         "packages/anthropic/src/anthropic-forced-tool-structured-output.test.ts",
         "packages/anthropic/src/anthropic-json-response-tool-fallback.test.ts",
         "packages/anthropic/src/anthropic-language-model.test.ts",
         "packages/anthropic/src/anthropic-message-lifecycle.test.ts",
+        "packages/anthropic/src/anthropic-message-metadata.test-d.ts",
+        "packages/anthropic/src/anthropic-message-threads.test.ts",
         "packages/anthropic/src/anthropic-prepare-tools.test.ts",
         "packages/anthropic/src/anthropic-provider.test-d.ts",
         "packages/anthropic/src/anthropic-provider.test.ts",
+        "packages/anthropic/src/anthropic-service-tier.test.ts",
         "packages/anthropic/src/anthropic-unknown-model-max-output-tokens.test.ts",
         "packages/anthropic/src/convert-anthropic-usage.test.ts",
         "packages/anthropic/src/convert-to-anthropic-prompt.test.ts",
+        "packages/anthropic/src/files/anthropic-files.test.ts",
         "packages/anthropic/src/has-circular-schema-reference.test.ts",
         "packages/anthropic/src/lazy-schemas.test.ts",
         "packages/anthropic/src/sanitize-json-schema.test.ts",
         "packages/anthropic/src/skills/anthropic-skills.test.ts",
         "packages/anthropic/src/supports-native-structured-output-schema.test.ts",
+        "packages/anthropic/src/tool/advisor_20260301.test-d.ts",
+        "packages/anthropic/src/tool/bash_20241022.test-d.ts",
         "packages/anthropic/src/tool/bash_20241022.test.ts",
-        "packages/anthropic/src/tool/bash_20250124.test.ts"
+        "packages/anthropic/src/tool/bash_20250124.test-d.ts",
+        "packages/anthropic/src/tool/bash_20250124.test.ts",
+        "packages/anthropic/src/tool/computer-toolset_20260801.test.ts",
+        "packages/anthropic/src/tool/web-tools-20260318.test-d.ts"
       ]
     }
   ],
@@ -45,6 +53,7 @@
       "Sources/SwiftAIAnthropic/AnthropicSkills.swift",
       "Sources/SwiftAIAnthropic/AnthropicStreaming.swift",
       "Sources/SwiftAIAnthropic/AnthropicStructuredOutputSchema.swift",
+      "Sources/SwiftAIAnthropic/AnthropicThreadAndToolChanges.swift",
       "Sources/SwiftAIAnthropic/AnthropicToolPreparation.swift"
     ],
     "tests": [
@@ -71,6 +80,10 @@
       "Tests/SwiftAIAnthropicTests/TestSupport.swift",
       "Tests/SwiftAIAnthropicTests/Weekly20261101AuthTests.swift",
       "Tests/SwiftAIAnthropicTests/Weekly20261101StructuredOutputTests.swift",
+      "Tests/SwiftAIAnthropicTests/Weekly20261108FilesAndToolsetTests.swift",
+      "Tests/SwiftAIAnthropicTests/Weekly20261108InlineToolsTests.swift",
+      "Tests/SwiftAIAnthropicTests/Weekly20261108ProviderSelectorCompatibilityTests.swift",
+      "Tests/SwiftAIAnthropicTests/Weekly20261108ThreadsAndTiersTests.swift",
       "Tests/SwiftAIAnthropicTests/WeeklyAnthropic20261023Tests.swift"
     ],
     "resources": []
@@ -83,9 +96,13 @@
     {
       "kind": "native-adaptation",
       "reason": "2026-11-01 reviewed 4.0.88 -> 4.0.94; integrity-verified archives and package/version-checked matching-release tests 612be2311464804d1e4897afacbf8f3fc2f6d9e3 -> 028a025398782f4938303f48fbeee45c79af544b. Ported forced-tool/native-schema policy, cycle/open-map/optional-count validation, top-level ref definitions, final JSON-tool fallback text/citations and lazy refreshable bearer auth; tests Weekly20261101Auth/StructuredOutput and updated reasoning assertions. Internal catalog reorganization is represented by existing native capability policy. Workflow serialization and JS sandbox mocks remain out of scope. Native one-response stream boundary remains deliberate; no multi-message parity claim."
+    },
+    {
+      "kind": "native-adaptation",
+      "reason": "2026-11-08 reviewed 4.0.94 -> 4.0.99; integrity-verified archives and release-matched tests 028a025398782f4938303f48fbeee45c79af544b -> 0f3a85f92d1ce06ccde01d662407ef83e097a712. Ported message threads and compatibility/beta/cache safeguards, inline function/provider tool changes with stable wire definitions and caller-choice restrictions, opt-in typed pings, applied service-tier metadata, Files management/lifecycle metadata, strict native schema selection, toolset member/input validation, legacy Vertex options and foreign assistant replay. JS cyclic/BigInt values cannot occur in native JSONValue. Native stream ends at first message_stop as documented. Exact dispositions: Docs/WeeklyUpstreamAudit20261108.json and Weekly20261108* owning tests."
     }
   ],
-  "reviewNote": "Imported M0 file ownership and upstream test inventory. These are candidate relationships, not claims that every listed upstream test is ported; refine into behavior mappings during extraction. 2026-11-01 reviewed 4.0.88 -> 4.0.94; integrity-verified archives and package/version-checked matching-release tests 612be2311464804d1e4897afacbf8f3fc2f6d9e3 -> 028a025398782f4938303f48fbeee45c79af544b. Ported forced-tool/native-schema policy, cycle/open-map/optional-count validation, top-level ref definitions, final JSON-tool fallback text/citations and lazy refreshable bearer auth; tests Weekly20261101Auth/StructuredOutput and updated reasoning assertions. Internal catalog reorganization is represented by existing native capability policy. Workflow serialization and JS sandbox mocks remain out of scope. Native one-response stream boundary remains deliberate; no multi-message parity claim.",
+  "reviewNote": "Imported M0 file ownership and upstream test inventory. These are candidate relationships, not claims that every listed upstream test is ported; refine into behavior mappings during extraction. 2026-11-01 reviewed 4.0.88 -> 4.0.94; integrity-verified archives and package/version-checked matching-release tests 612be2311464804d1e4897afacbf8f3fc2f6d9e3 -> 028a025398782f4938303f48fbeee45c79af544b. Ported forced-tool/native-schema policy, cycle/open-map/optional-count validation, top-level ref definitions, final JSON-tool fallback text/citations and lazy refreshable bearer auth; tests Weekly20261101Auth/StructuredOutput and updated reasoning assertions. Internal catalog reorganization is represented by existing native capability policy. Workflow serialization and JS sandbox mocks remain out of scope. Native one-response stream boundary remains deliberate; no multi-message parity claim. 2026-11-08 reviewed 4.0.94 -> 4.0.99; integrity-verified archives and release-matched tests 028a025398782f4938303f48fbeee45c79af544b -> 0f3a85f92d1ce06ccde01d662407ef83e097a712. Ported message threads and compatibility/beta/cache safeguards, inline function/provider tool changes with stable wire definitions and caller-choice restrictions, opt-in typed pings, applied service-tier metadata, Files management/lifecycle metadata, strict native schema selection, toolset member/input validation, legacy Vertex options and foreign assistant replay. JS cyclic/BigInt values cannot occur in native JSONValue. Native stream ends at first message_stop as documented. Exact dispositions: Docs/WeeklyUpstreamAudit20261108.json and Weekly20261108* owning tests. 2026-11-08 compatibility supplement: preserved exact public function-reference selectors from canonical pre-run b34e233f033adde06bff302f5d3d11c12f73733e: AnthropicLanguageModel.body(for:modelID:providerID:stream:supportsNativeStructuredOutput:supportsStrictTools:policy:), anthropicProviderMetadata(usage:stopSequence:stopDetails:container:contextManagement:inputTransformations:safeguardResults:providerID:requestProviderOptions:). Forwarding overloads retain original defaults and explicit new-option defaults; Weekly20261108ProviderSelectorCompatibilityTests also verifies extended references, defaulted calls and runtime forwarding. No upstream baseline or behavioral disposition is changed by this supplement.",
   "canonicalOnlyReferences": [
     {
       "kind": "sources",

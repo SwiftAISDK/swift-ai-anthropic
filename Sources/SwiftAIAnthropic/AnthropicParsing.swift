@@ -506,11 +506,13 @@ public func anthropicProviderMetadata(from raw: JSONValue, providerID: String, r
         contextManagement: anthropicContextManagementMetadata(from: raw["context_management"]) ?? .null,
         inputTransformations: raw["input_transformations"] ?? .null,
         safeguardResults: raw["safeguard_results"] ?? .null,
+        serviceTier: (raw["usage"]?["service_tier"]?.stringValue ?? raw["service_tier"]?.stringValue).map(JSONValue.string),
         providerID: providerID,
         requestProviderOptions: requestProviderOptions
     )
 }
 
+/// Preserves the original function-reference signature.
 public func anthropicProviderMetadata(
     usage: JSONValue?,
     stopSequence: JSONValue,
@@ -522,6 +524,24 @@ public func anthropicProviderMetadata(
     providerID: String,
     requestProviderOptions: [String: JSONValue] = [:]
 ) -> [String: JSONValue] {
+    anthropicProviderMetadata(usage: usage, stopSequence: stopSequence, stopDetails: stopDetails,
+        container: container, contextManagement: contextManagement, inputTransformations: inputTransformations,
+        safeguardResults: safeguardResults, serviceTier: nil, providerID: providerID,
+        requestProviderOptions: requestProviderOptions)
+}
+
+public func anthropicProviderMetadata(
+    usage: JSONValue?,
+    stopSequence: JSONValue,
+    stopDetails: JSONValue = .null,
+    container: JSONValue,
+    contextManagement: JSONValue,
+    inputTransformations: JSONValue = .null,
+    safeguardResults: JSONValue = .null,
+    serviceTier: JSONValue? = nil,
+    providerID: String,
+    requestProviderOptions: [String: JSONValue] = [:]
+) -> [String: JSONValue] {
     var metadataObject: [String: JSONValue] = [
         "usage": usage ?? .null,
         "stopSequence": stopSequence,
@@ -529,6 +549,7 @@ public func anthropicProviderMetadata(
         "container": container,
         "contextManagement": contextManagement
     ]
+    if let tier = usage?["service_tier"]?.stringValue ?? serviceTier?.stringValue { metadataObject["serviceTier"] = .string(tier) }
     if stopDetails != .null {
         metadataObject["stopDetails"] = stopDetails
     }
@@ -637,6 +658,11 @@ public func anthropicTokenUsage(from usage: JSONValue?) -> TokenUsage? {
 }
 
 func anthropicHTTPStatusError(provider: String, response: AIHTTPResponse) -> AIError {
+    if let raw = try? response.jsonValue(), raw["error"]?["details"] != nil && raw["error"]?["details"] != .null {
+        var error = AIAPICallError(provider: provider, statusCode: response.statusCode, responseHeaders: response.headers, responseBody: response.bodyText)
+        error.message = raw["error"]?["message"]?.stringValue
+        return .apiCall(error)
+    }
     let body = anthropicErrorMessage(from: response.body) ?? response.bodyText
     guard !response.headers.isEmpty else {
         return .apiCall(provider: provider, statusCode: response.statusCode, body: body)
@@ -651,6 +677,12 @@ func anthropicHTTPStatusError(provider: String, response: AIHTTPResponse) -> AIE
 
 func anthropicStreamError(from raw: JSONValue, provider: String, headers: [String: String]) -> AIError? {
     guard let error = anthropicStreamProviderError(from: raw) else { return nil }
+    if raw["error"]?["details"] != nil && raw["error"]?["details"] != .null {
+        var failure = AIAPICallError(provider: provider, statusCode: error.statusCode ?? 500, responseHeaders: headers,
+            responseBody: anthropicJSONString(raw) ?? error.message, isRetryable: error.isRetryable)
+        failure.message = error.message
+        return .apiCall(failure)
+    }
     return .apiCall(
         provider: provider,
         statusCode: error.statusCode ?? 500,
@@ -806,7 +838,7 @@ func anthropicMapCitation(_ citation: JSONValue, documents: [AnthropicCitationDo
 }
 
 func anthropicToolArguments(_ arguments: String) -> JSONValue {
-    let decoded = (try? decodeJSONBody(Data(arguments.utf8))) ?? .object([:])
+    let decoded = (try? decodeJSONBody(Data(arguments.utf8))) ?? .string(arguments)
     guard case .object = decoded else {
         return .object(["rawInvalidInput": decoded])
     }

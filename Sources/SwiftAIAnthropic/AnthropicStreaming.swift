@@ -375,6 +375,8 @@ public struct AnthropicStreamingToolCalls {
         self.markCodeExecutionDynamic = markCodeExecutionDynamic
     }
 
+    var validationError: AIError?
+
     public mutating func apply(messageStartContent value: JSONValue?) -> [LanguageStreamPart] {
         guard let blocks = value?.arrayValue else { return [] }
         var parts: [LanguageStreamPart] = []
@@ -479,17 +481,14 @@ public struct AnthropicStreamingToolCalls {
             }
             var finalArguments = buffer.arguments.isEmpty ? "{}" : buffer.arguments
             var leadingParts: [LanguageStreamPart] = []
-            if let action = buffer.toolsetAction,
-               let parsed = try? decodeJSONBody(Data(finalArguments.utf8)),
-               var object = parsed.objectValue {
+            if let action = buffer.toolsetAction {
+                guard let parsed = try? decodeJSONBody(Data(finalArguments.utf8)), var object = parsed.objectValue else {
+                    validationError = AIError.invalidResponse(provider: providerID, message: "Invalid toolset member input JSON: expected an object.")
+                    return [.error(message: "Invalid toolset member input JSON: expected an object.")]
+                }
                 object["action"] = .string(action)
                 finalArguments = anthropicJSONString(.object(object)) ?? finalArguments
-                leadingParts.append(.toolCallDelta(
-                    id: buffer.id,
-                    name: buffer.name,
-                    argumentsDelta: finalArguments,
-                    index: index
-                ))
+                leadingParts.append(.toolCallDelta(id: buffer.id, name: buffer.name, argumentsDelta: finalArguments, index: index))
                 leadingParts.append(.toolInputDelta(id: buffer.id, delta: finalArguments))
             }
             return leadingParts + [

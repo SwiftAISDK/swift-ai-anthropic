@@ -71,8 +71,12 @@ public final class AnthropicBatchLanguageModel: BatchLanguageModel, @unchecked S
                 modelID: requestModelID,
                 providerID: providerID,
                 supportsNativeStructuredOutput: config.supportsNativeStructuredOutput,
-                supportsStrictTools: config.supportsStrictTools
+                supportsStrictTools: config.supportsStrictTools,
+                supportsMessageThreads: config.supportsMessageThreads
             )
+            if prepared.body["thread"] != nil {
+                throw AIError.invalidArgument(argument: "providerOptions.anthropic.thread", message: "Anthropic Message Batches do not support message threads (request \"\(request.id)\").")
+            }
             if prepared.usesJSONToolResponseFormat {
                 throw AIError.invalidArgument(
                     argument: "responseFormat",

@@ -26,7 +26,7 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             }
             headers["x-api-key"] = headers["x-api-key"] ?? key
         }
-        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.94")
+        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.99")
         headers["anthropic-version"] = headers["anthropic-version"] ?? "2023-06-01"
         languageProviderID = settings.name ?? "anthropic.messages"
         skillsProviderID = anthropicSkillsProviderID(from: languageProviderID)
@@ -40,6 +40,7 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             batchResultMaxLineBytes: settings.batchResultDownloads?.maxLineBytes
         )
         config.http.credentialResolver = credentialResolver
+        config.supportsMessageThreads = true
         self.config = config
     }
 

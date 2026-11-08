@@ -55,7 +55,8 @@ public enum AnthropicTools {
         providerTool(
             id: "anthropic.computer_toolset_20260801",
             name: "computer",
-            args: configs.map { ["configs": .object($0)] } ?? [:]
+            args: configs.map { ["configs": .object($0)] } ?? [:],
+            inputSchema: anthropicComputerToolsetSchema(configs)
         )
     }
 
@@ -336,7 +337,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
     }
 
     public func generate(_ request: LanguageModelRequest) async throws -> TextGenerationResult {
-        let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, policy: config.requestPolicy?(modelID) ?? .init())
+        let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, supportsMessageThreads: config.supportsMessageThreads, policy: config.requestPolicy?(modelID) ?? .init())
         var body = preparedRequest.body
         body["stream"] = nil
         let path: String
@@ -364,6 +365,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         }
         let raw = try response.jsonValue()
         try anthropicValidateFallbackContent(raw["content"], providerID: providerID)
+        try anthropicValidateToolsetBlocks(raw["content"]?.arrayValue ?? [], tools: preparedRequest.preparedTools, providerID: providerID)
         let generatedContent = anthropicGeneratedContent(
             from: raw["content"],
             providerID: providerID,
@@ -388,6 +390,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             providerMetadata: anthropicProviderMetadata(from: raw, providerID: providerID, requestProviderOptions: preparedRequest.providerOptions),
             rawValue: raw,
             warnings: preparedRequest.warnings,
+            requestMetadata: AIRequestMetadata(body: .object(body), headers: request.headers, url: httpRequest.url.absoluteString),
             responseMetadata: aiResponseMetadata(from: raw, response: response, modelID: modelID)
         )
     }
@@ -396,7 +399,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, stream: true, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, policy: config.requestPolicy?(modelID) ?? .init())
+                    let preparedRequest = try Self.body(for: request, modelID: modelID, providerID: providerID, stream: true, supportsNativeStructuredOutput: config.supportsNativeStructuredOutput, supportsStrictTools: config.supportsStrictTools, supportsMessageThreads: config.supportsMessageThreads, policy: config.requestPolicy?(modelID) ?? .init())
                     var body = preparedRequest.body
                     let path: String
                     if providerID == "googleVertex.anthropic.messages" {
@@ -448,6 +451,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                         }
                         continuation.yield(part)
                     }
+                    emit(.requestMetadata(AIRequestMetadata(body: .object(body), headers: request.headers, url: httpRequest.url.absoluteString)))
                     emit(.responseMetadata(aiResponseMetadata(response: responseHead, modelID: modelID)))
                     emit(.streamStart(warnings: preparedRequest.warnings))
                     var contentBlocks = AnthropicStreamingContentBlocks(
@@ -469,6 +473,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                     var finishReason: String?
                     var finishUsage: TokenUsage?
                     var rawUsage: JSONValue?
+                    var serviceTier: JSONValue?
                     var stopSequence: JSONValue = .null
                     var stopDetails: JSONValue = .null
                     var container: JSONValue = .null
@@ -482,6 +487,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                         if event.data == "[DONE]" { break }
                         let raw = try decodeJSONBody(Data(event.data.utf8))
                         try anthropicValidateFallbackEvent(raw, providerID: providerID)
+                        try anthropicValidateToolsetBlocks((raw["message"]?["content"]?.arrayValue ?? []) + (raw["content_block"].map { [$0] } ?? []), tools: preparedRequest.preparedTools, providerID: providerID)
                         if request.includeRawChunks {
                             emit(.raw(raw))
                         }
@@ -505,6 +511,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                         contextManagement: contextManagement,
                                         inputTransformations: inputTransformations,
                                         safeguardResults: safeguardResults,
+                                    serviceTier: serviceTier,
                                         providerID: providerID,
                                         requestProviderOptions: preparedRequest.providerOptions
                                     )
@@ -515,6 +522,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                 ?? AIError.invalidResponse(provider: providerID, message: providerError.message)
                         }
                         switch raw["type"]?.stringValue {
+                        case "ping":
+                            if preparedRequest.includePings { emit(.ping) }
                         case "message_start":
                             let messageID = raw["message"]?["id"]?.stringValue
                             if isMessageOpen {
@@ -530,6 +539,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                 break streamEvents
                             }
                             hasUnfinishedOutput = false
+                            serviceTier = (raw["message"]?["usage"]?["service_tier"]?.stringValue ?? raw["message"]?["service_tier"]?.stringValue).map(JSONValue.string)
                             finishReason = nil
                             isMessageOpen = true
                             activeMessageID = messageID
@@ -556,6 +566,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                 finishReason = anthropicFinishReason(reason, toolCallCount: realToolCallCount)
                             }
                         case "message_delta":
+                            if let tier = raw["usage"]?["service_tier"]?.stringValue { serviceTier = .string(tier) }
                             finishReason = anthropicFinishReason(raw["delta"]?["stop_reason"]?.stringValue, toolCallCount: realToolCallCount)
                             stopSequence = raw["delta"]?["stop_sequence"] ?? stopSequence
                             stopDetails = anthropicStopDetailsMetadata(from: raw["delta"]?["stop_details"]) ?? stopDetails
@@ -605,6 +616,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                             }
                             emit(part)
                         }
+                        if let validationError = toolCalls.validationError { throw validationError }
                         if raw["type"]?.stringValue == "message_stop" {
                             for source in streamingSources.finishSources() {
                                 emit(.source(source))
@@ -626,6 +638,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                     contextManagement: contextManagement,
                                     inputTransformations: inputTransformations,
                                     safeguardResults: safeguardResults,
+                                    serviceTier: serviceTier,
                                     providerID: providerID,
                                     requestProviderOptions: preparedRequest.providerOptions
                                 )
@@ -651,6 +664,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         }
     }
 
+    /// Preserves the original function-reference signature.
     public static func body(
         for request: LanguageModelRequest,
         modelID: String,
@@ -660,26 +674,52 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         supportsStrictTools: Bool? = nil,
         policy: AnthropicRequestPolicy = .init()
     ) throws -> AnthropicPreparedCall {
+        try body(for: request, modelID: modelID, providerID: providerID, stream: stream,
+                 supportsNativeStructuredOutput: supportsNativeStructuredOutput,
+                 supportsStrictTools: supportsStrictTools, supportsMessageThreads: false, policy: policy)
+    }
+
+    public static func body(
+        for request: LanguageModelRequest,
+        modelID: String,
+        providerID: String,
+        stream: Bool = false,
+        supportsNativeStructuredOutput: Bool? = nil,
+        supportsStrictTools: Bool? = nil,
+        supportsMessageThreads: Bool = false,
+        policy: AnthropicRequestPolicy = .init()
+    ) throws -> AnthropicPreparedCall {
         var betas: [String] = []
         var warnings = anthropicStandardWarnings(for: request)
         var reasoningWarnings: [AIWarning] = []
         let request = try policy.prepareRequest?(request, modelID, &reasoningWarnings) ?? request
         let providerOptions = try anthropicOptions(from: request, providerID: providerID)
-        let toolNameMapping = createToolNameMapping(
-            tools: request.tools,
-            providerToolNames: Self.providerToolNames
-        )
+        let capabilities = anthropicModelCapabilities(modelID)
+        let supportsStructuredOutput = capabilities.supportsStructuredOutput && (supportsNativeStructuredOutput ?? true)
+        let supportsStrictToolDefinitions = capabilities.supportsStructuredOutput && (supportsStrictTools ?? true)
+        let thread = providerOptions.body["thread"]
+        try anthropicValidateThread(thread, body: providerOptions.body, supported: supportsMessageThreads, providerID: providerID)
+        var mappingTools = try anthropicInlineTools(in: request.messages)
+        mappingTools.merge(request.tools) { _, declared in declared }
+        let providerNames = Dictionary(uniqueKeysWithValues: mappingTools.compactMap { name, tool -> (String, String)? in
+            guard tool["type"]?.stringValue == "provider", let id = tool["id"]?.stringValue, let providerName = Self.providerToolNames[id] else { return nil }
+            return (name, providerName)
+        })
+        let toolNameMapping = AIToolNameMapping(customToolNameToProviderToolName: providerNames,
+            preferredCustomToolNames: try anthropicInlineToolNames(in: request.messages) + request.tools.keys.sorted())
         let prompt = try Self.promptMessages(
             from: request.messages,
             providerID: providerID,
             sendReasoning: providerOptions.sendReasoning ?? true,
             toolNameMapping: toolNameMapping,
             policy: policy,
+            supportsStructuredOutput: supportsStructuredOutput,
+            supportsStrictTools: supportsStrictToolDefinitions,
+            initialCacheBreakpointCount: thread != nil && providerOptions.body["cache_control"] != nil && providerOptions.body["cache_control"] != .null ? 1 : 0,
             betas: &betas,
             warnings: &warnings
         )
 
-        let capabilities = anthropicModelCapabilities(modelID)
         if request.maxOutputTokens == nil, !capabilities.isKnownModel {
             warnings.append(AIWarning(
                 type: "compatibility",
@@ -706,12 +746,15 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         if let topK = sampling.topK { body["top_k"] = .number(Double(topK)) }
         if let topP = sampling.topP { body["top_p"] = .number(topP) }
         if !request.stopSequences.isEmpty { body["stop_sequences"] = .array(request.stopSequences) }
-        let supportsStructuredOutput = capabilities.supportsStructuredOutput
-            && (supportsNativeStructuredOutput ?? true)
-        let supportsStrictToolDefinitions = capabilities.supportsStructuredOutput
-            && (supportsStrictTools ?? true)
         let eagerInputStreaming = stream && (providerOptions.toolStreaming ?? true)
         body.merge(providerOptions.body) { _, new in new }
+        let optionNamespace = anthropicProviderOptionsName(from: providerID)
+        if let tier = body["service_tier"]?.stringValue,
+           let supportedTiers = optionNamespace == "anthropic" ? ["auto", "standard_only"] : (optionNamespace == "minimax" ? ["standard", "priority"] : nil),
+           !supportedTiers.contains(tier) {
+            body.removeValue(forKey: "service_tier")
+            warnings.append(AIWarning(type: "unsupported", feature: "serviceTier", message: "serviceTier \"\(tier)\" is not supported by \(optionNamespace). Use \(supportedTiers.joined(separator: " or "))."))
+        }
         if body["context_management"] != nil, body["compaction"] != nil {
             throw AIError.invalidArgument(
                 argument: "providerOptions",
@@ -740,13 +783,18 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         let usesJSONResponseTool: Bool
         if case let .json(schema, _, _) = request.responseFormat, let schema {
             usesJSONResponseTool = providerOptions.structuredOutputMode != "outputFormat"
-                && (providerOptions.structuredOutputMode == "jsonTool" || !supportsStructuredOutput)
+                && (providerOptions.structuredOutputMode == "jsonTool" || !supportsStructuredOutput || !anthropicSupportsNativeStructuredOutputSchema(schema))
                 && !(capabilities.rejectsForcedToolUse && capabilities.supportsStructuredOutput && anthropicSupportsNativeStructuredOutputSchema(schema))
         } else {
             usesJSONResponseTool = false
         }
+        let requestedToolChoice = request.toolChoice ?? providerOptions.toolChoice
+        let selectedTools = usesJSONResponseTool ? request.tools.filter { name, _ in
+            requestedToolChoice?["type"]?.stringValue != "none"
+                && (requestedToolChoice?["type"]?.stringValue != "tool" || requestedToolChoice?["toolName"]?.stringValue == name || requestedToolChoice?["name"]?.stringValue == name)
+        } : request.tools
         let preparedTools = try anthropicPrepareTools(
-            from: request.tools,
+            from: selectedTools,
             toolChoice: usesJSONResponseTool ? nil : (request.toolChoice ?? providerOptions.toolChoice),
             disableParallelToolUse: providerOptions.disableParallelToolUse,
             supportsStructuredOutput: usesJSONResponseTool ? false : supportsStructuredOutput,
@@ -754,7 +802,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             defaultEagerInputStreaming: eagerInputStreaming,
             rejectsForcedToolUse: capabilities.rejectsForcedToolUse || body["thinking"]?["type"]?.stringValue == "enabled",
             cacheNamespace: policy.metadataNamespace,
-            initialCacheBreakpointCount: prompt.cacheBreakpointCount
+            initialCacheBreakpointCount: prompt.cacheBreakpointCount,
+            hasInlineTools: !mappingTools.isEmpty
         )
         if !preparedTools.tools.isEmpty {
             body["tools"] = .array(preparedTools.tools)
@@ -775,6 +824,22 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             eagerInputStreaming: eagerInputStreaming,
             warnings: &warnings
         )
+        try anthropicValidateInlineToolChoice(messages: prompt.messages, sourceMessages: request.messages, tools: request.tools, toolChoice: requestedToolChoice, actualToolChoice: body["tool_choice"], usesJSONResponseTool: usesJSONToolResponseFormat, mapping: toolNameMapping, body: &body)
+        if let thread {
+            let pinned = Set(providerOptions.betas + (normalizeHeaders(request.headers)["anthropic-beta"]?.split(separator: ",").map(String.init) ?? []))
+            let unpinned = betas.filter { !pinned.contains($0) }
+            if !unpinned.isEmpty {
+                warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Message content enabled beta headers: \(unpinned.joined(separator: ", ")). Thread requests require the same beta set on every turn. Pin these values with anthropicBeta on every request, or start a new thread when the set changes."))
+            }
+            if thread["type"]?.stringValue == "continue" {
+                if body["system"] != nil || !request.tools.isEmpty {
+                    warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Continuation uses the system prompt and tool definitions stored by the create request; supplied definitions are omitted from the wire request. Supply identical tools for local tool handling and fixed request settings. To change system instructions or tools, start a new thread."))
+                }
+                body.removeValue(forKey: "system")
+                body.removeValue(forKey: "tools")
+            }
+            betas.append("message-threads-2026-08-12")
+        }
         applyAnthropicThinkingRules(
             to: &body,
             requestedMaxTokens: request.maxOutputTokens,
@@ -813,7 +878,9 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             markCodeExecutionDynamic: anthropicHasDynamicFilteringWebToolWithoutCodeExecution(
                 preparedTools.tools
             ),
-            providerOptions: request.providerOptions
+            providerOptions: request.providerOptions,
+            includePings: stream && providerOptions.includePings == true,
+            preparedTools: preparedTools.tools
         )
     }
 
@@ -823,19 +890,22 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         sendReasoning: Bool,
         toolNameMapping: AIToolNameMapping,
         policy: AnthropicRequestPolicy = .init(),
+        supportsStructuredOutput: Bool = true,
+        supportsStrictTools: Bool = true,
+        initialCacheBreakpointCount: Int = 0,
         betas: inout [String],
         warnings: inout [AIWarning]
     ) throws -> (system: [JSONValue], messages: [JSONValue], cacheBreakpointCount: Int) {
         let cacheNamespace = policy.metadataNamespace
         var sawConversationMessage = false
-        var cacheBreakpointCount = 0
+        var cacheBreakpointCount = initialCacheBreakpointCount
         var system: [JSONValue] = []
         var conversation: [JSONValue] = []
         var lastUserMessageIndex = -1
         var warnedAboutInitialToolChanges = false
         for message in messages {
             let toolChanges = message.role == .system
-                ? anthropicToolChanges(from: message.providerMetadata)
+                ? try anthropicToolChanges(from: message.providerMetadata)
                 : []
             let systemOptions = message.role == .system
                 ? anthropicSystemMessageOptions(from: message.providerMetadata)
@@ -886,9 +956,6 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                 if !betas.contains("mid-conversation-system-2026-04-07") {
                     betas.append("mid-conversation-system-2026-04-07")
                 }
-                if !toolChanges.isEmpty, !betas.contains("mid-conversation-tool-changes-2026-07-01") {
-                    betas.append("mid-conversation-tool-changes-2026-07-01")
-                }
                 if systemOptions.clearAt != nil,
                    !betas.contains("mid-conversation-system-clear-at-2026-08-21") {
                     betas.append("mid-conversation-system-clear-at-2026-08-21")
@@ -912,11 +979,18 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                     || !message.combinedText.isEmpty
             )
             if message.role == .system, !toolChanges.isEmpty {
-                converted = anthropicAppendingToolChanges(
+                converted = try anthropicAppendingToolChanges(
                     toolChanges,
                     to: converted,
-                    toolNameMapping: toolNameMapping
+                    toolNameMapping: toolNameMapping,
+                    supportsStructuredOutput: supportsStructuredOutput,
+                    supportsStrictTools: supportsStrictTools,
+                    cacheNamespace: cacheNamespace,
+                    cacheBreakpointCount: &cacheBreakpointCount,
+                    betas: &betas,
+                    warnings: &warnings
                 )
+                if converted["content"]?.arrayValue?.isEmpty == true, systemOptions.clearAt == nil, systemOptions.effort == nil { continue }
             }
             if message.role == .system,
                systemOptions.clearAt != nil || systemOptions.effort != nil {
@@ -942,17 +1016,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         return (system, conversation, cacheBreakpointCount)
     }
 
-    private static func anthropicToolChanges(
-        from providerMetadata: [String: JSONValue]
-    ) -> [(type: String, toolName: String)] {
-        (providerMetadata["anthropic"]?["toolChanges"]?.arrayValue ?? []).compactMap { change in
-            guard let type = change["type"]?.stringValue,
-                  type == "tool_addition" || type == "tool_removal",
-                  let toolName = change["toolName"]?.stringValue else {
-                return nil
-            }
-            return (type: type, toolName: toolName)
-        }
+    private static func anthropicToolChanges(from providerMetadata: [String: JSONValue]) throws -> [AnthropicToolChange] {
+        try anthropicParsedToolChanges(providerMetadata["anthropic"]?["toolChanges"])
     }
 
     private static func anthropicSystemMessageOptions(
@@ -994,26 +1059,36 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
     }
 
     private static func anthropicAppendingToolChanges(
-        _ toolChanges: [(type: String, toolName: String)],
-        to message: JSONValue,
-        toolNameMapping: AIToolNameMapping
-    ) -> JSONValue {
-        guard var object = message.objectValue else {
-            return message
-        }
+        _ toolChanges: [AnthropicToolChange], to message: JSONValue, toolNameMapping: AIToolNameMapping,
+        supportsStructuredOutput: Bool, supportsStrictTools: Bool, cacheNamespace: String,
+        cacheBreakpointCount: inout Int, betas: inout [String], warnings: inout [AIWarning]
+    ) throws -> JSONValue {
+        guard var object = message.objectValue else { return message }
         var content = object["content"]?.arrayValue ?? []
-        content.removeAll {
-            $0["type"]?.stringValue == "text" && $0["text"]?.stringValue == ""
+        content.removeAll { $0["type"]?.stringValue == "text" && $0["text"]?.stringValue == "" }
+        var hasInline = false
+        var hasReferences = false
+        for change in toolChanges {
+            if let tool = change.tool {
+                if tool["type"]?.stringValue == "provider", tool["id"]?.stringValue?.hasPrefix("anthropic.computer_") == true {
+                    warnings.append(AIWarning(type: "other", message: "The tool '\(tool["name"]?.stringValue ?? "computer")' cannot be added by value in a tool change. Declare it in the tools option and add it by reference with toolName. The tool change has been ignored."))
+                    continue
+                }
+                let native = try anthropicNativeInlineTool(tool)
+                let prepared = try anthropicPrepareTools(from: [native.name: native.schema], supportsStructuredOutput: supportsStructuredOutput, supportsStrictTools: supportsStrictTools, cacheNamespace: cacheNamespace, initialCacheBreakpointCount: cacheBreakpointCount)
+                warnings += prepared.warnings
+                for beta in prepared.betas where !betas.contains(beta) { betas.append(beta) }
+                guard let definition = prepared.tools.first else { continue }
+                cacheBreakpointCount = prepared.cacheBreakpointCount
+                content.append(["type": "tool_addition", "tool": ["type": "tool_definition", "definition": definition]])
+                hasInline = true
+            } else if let name = change.toolName {
+                content.append(["type": .string(change.type), "tool": ["type": "tool_reference", "name": .string(toolNameMapping.toProviderToolName(name))]])
+                hasReferences = true
+            }
         }
-        content.append(contentsOf: toolChanges.map { change in
-            .object([
-                "type": .string(change.type),
-                "tool": .object([
-                    "type": .string("tool_reference"),
-                    "name": .string(toolNameMapping.toProviderToolName(change.toolName))
-                ])
-            ])
-        })
+        let beta = hasInline ? "inline-tools-2026-09-15" : (hasReferences ? "mid-conversation-tool-changes-2026-07-01" : nil)
+        if let beta, !betas.contains(beta) { betas.append(beta) }
         object["content"] = .array(content)
         return .object(object)
     }
@@ -1042,7 +1117,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
               let text = lastPart["text"]?.stringValue else {
             return
         }
-        lastPart["text"] = .string(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        lastPart["text"] = .string(text.replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression))
         content[content.count - 1] = .object(lastPart)
         message["content"] = .array(content)
         conversation[conversation.count - 1] = .object(message)
@@ -1104,6 +1179,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             }
             switch part {
             case let .text(text, providerMetadata):
+                if message.role == .assistant && text.isEmpty { return nil }
                 let providerKey = anthropicProviderMetadataKey(from: providerID)
                 let metadata = providerMetadata[providerKey] ?? providerMetadata["anthropic"]
                 if metadata?["type"]?.stringValue == "compaction" {
@@ -2131,6 +2207,8 @@ public struct AnthropicPreparedCall {
     public var toolNameMapping: AIToolNameMapping = AIToolNameMapping()
     public var markCodeExecutionDynamic: Bool = false
     public var providerOptions: [String: JSONValue] = [:]
+    public var includePings: Bool = false
+    public var preparedTools: [JSONValue] = []
 }
 
 public func anthropicSupportedHTTPURL(_ value: String) -> Bool {

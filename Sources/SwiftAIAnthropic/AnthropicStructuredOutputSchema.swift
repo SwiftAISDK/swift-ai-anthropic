@@ -50,7 +50,8 @@ func anthropicResolveSchemaPointer(_ schema: JSONValue, pointer: String) -> JSON
     return current
 }
 
-func anthropicSupportsNativeStructuredOutputSchema(_ schema: JSONValue) -> Bool {
+/// Whether Anthropic native output grammars preserve the supplied schema.
+public func anthropicSupportsNativeStructuredOutputSchema(_ schema: JSONValue) -> Bool {
     guard !anthropicHasCircularSchemaReference(schema) else { return false }
     struct Stats { var optional = 0; var open = false }
     var cached: [String: Stats] = [:]

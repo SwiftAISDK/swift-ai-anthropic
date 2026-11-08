@@ -10,6 +10,7 @@ struct AnthropicPreparedTools {
     var betas: [String] = []
     var warnings: [AIWarning] = []
     var hasCodeExecution = false
+    var cacheBreakpointCount = 0
 }
 
 func anthropicPrepareTools(
@@ -21,10 +22,11 @@ func anthropicPrepareTools(
     defaultEagerInputStreaming: Bool = false,
     rejectsForcedToolUse: Bool = false,
     cacheNamespace: String = "anthropic",
-    initialCacheBreakpointCount: Int = 0
+    initialCacheBreakpointCount: Int = 0,
+    hasInlineTools: Bool = false
 ) throws -> AnthropicPreparedTools {
     var prepared = AnthropicPreparedTools()
-    guard !tools.isEmpty else { return prepared }
+    guard !tools.isEmpty || hasInlineTools else { return prepared }
 
     func addBeta(_ beta: String) {
         if !prepared.betas.contains(beta) {
@@ -52,7 +54,7 @@ func anthropicPrepareTools(
                     ))
                 }
             }
-            if supportsStructuredOutput {
+            if supportsStructuredOutput && supportsStrictTools {
                 addBeta("structured-outputs-2025-11-13")
             }
             if let inputExamples = inputSchema?.removeValue(forKey: "inputExamples")?.arrayValue {
@@ -225,10 +227,11 @@ func anthropicPrepareTools(
         if choice.omitTools {
             prepared.tools = []
             prepared.toolChoice = nil
-        } else if !prepared.tools.isEmpty {
+        } else if !prepared.tools.isEmpty || hasInlineTools {
             prepared.toolChoice = choice.value
         }
     }
+    prepared.cacheBreakpointCount = cacheBreakpointCount
     return prepared
 }
 

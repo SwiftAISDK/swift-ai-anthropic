@@ -12,6 +12,7 @@ struct AnthropicMappedOptions {
     var toolStreaming: Bool?
     var sendReasoning: Bool?
     var structuredOutputMode: String?
+    var includePings: Bool? = nil
 }
 
 public struct AnthropicModelCapabilities {
@@ -30,6 +31,8 @@ public struct AnthropicModelCapabilities {
 
 let anthropicLanguageProviderOptionKeys: Set<String> = [
     "sendReasoning",
+    "includePings",
+    "thread",
     "structuredOutputMode",
     "thinking",
     "disableParallelToolUse",
@@ -58,6 +61,7 @@ func anthropicOptions(from request: LanguageModelRequest, providerID: String) th
     var toolStreaming = request.extraBody["toolStreaming"]?.boolValue
     var sendReasoning = request.extraBody["sendReasoning"]?.boolValue ?? true
     var structuredOutputMode = request.extraBody["structuredOutputMode"]?.stringValue
+    var includePings = request.extraBody["includePings"]?.boolValue
 
     if let value = request.providerOptions["anthropic"], value != .null {
         guard let nested = value.objectValue else {
@@ -71,10 +75,14 @@ func anthropicOptions(from request: LanguageModelRequest, providerID: String) th
         toolStreaming = typed.toolStreaming ?? toolStreaming
         sendReasoning = typed.sendReasoning ?? sendReasoning
         structuredOutputMode = typed.structuredOutputMode ?? structuredOutputMode
+        includePings = typed.includePings ?? includePings
     }
 
     let providerOptionsName = anthropicProviderOptionsName(from: providerID)
-    if providerOptionsName != "anthropic", let value = request.providerOptions[providerOptionsName], value != .null {
+    let customNamespace = providerOptionsName == "googleVertex"
+        ? ["googleVertex", "vertex"].first { request.providerOptions[$0] != nil && request.providerOptions[$0] != .null }
+        : providerOptionsName
+    if providerOptionsName != "anthropic", let value = request.providerOptions[customNamespace ?? providerOptionsName], value != .null {
         guard let nested = value.objectValue else {
             throw AIError.invalidArgument(argument: "providerOptions.\(providerOptionsName)", message: "Anthropic provider options must be an object.")
         }
@@ -86,6 +94,7 @@ func anthropicOptions(from request: LanguageModelRequest, providerID: String) th
         toolStreaming = typed.toolStreaming ?? toolStreaming
         sendReasoning = typed.sendReasoning ?? sendReasoning
         structuredOutputMode = typed.structuredOutputMode ?? structuredOutputMode
+        includePings = typed.includePings ?? includePings
     }
 
     if let betaValue = request.extraBody["anthropicBeta"] {
@@ -93,19 +102,29 @@ func anthropicOptions(from request: LanguageModelRequest, providerID: String) th
     }
     betas.append(contentsOf: anthropicAutomaticBetas(from: output))
 
-    return AnthropicMappedOptions(body: output, betas: betas, toolChoice: toolChoice, disableParallelToolUse: disableParallelToolUse, toolStreaming: toolStreaming, sendReasoning: sendReasoning, structuredOutputMode: structuredOutputMode)
+    return AnthropicMappedOptions(body: output, betas: betas, toolChoice: toolChoice, disableParallelToolUse: disableParallelToolUse, toolStreaming: toolStreaming, sendReasoning: sendReasoning, structuredOutputMode: structuredOutputMode, includePings: includePings)
 }
 
 func anthropicTypedOptions(from options: [String: JSONValue], argumentPrefix: String) throws -> AnthropicMappedOptions {
-    if let serviceTier = options["serviceTier"], serviceTier != .null,
-       !["auto", "standard_only"].contains(serviceTier.stringValue) {
-        throw AIError.invalidArgument(
-            argument: "\(argumentPrefix).serviceTier",
-            message: "Anthropic serviceTier must be auto or standard_only."
-        )
+    if let serviceTier = options["serviceTier"],
+       !["auto", "standard_only", "standard", "priority"].contains(serviceTier.stringValue) {
+        throw AIError.invalidArgument(argument: "\(argumentPrefix).serviceTier", message: "Invalid serviceTier.")
+    }
+    if let includePings = options["includePings"], includePings.boolValue == nil {
+        throw AIError.invalidArgument(argument: "\(argumentPrefix).includePings", message: "includePings must be a Boolean.")
+    }
+    if let thread = options["thread"] {
+        guard let object = thread.objectValue,
+              object["type"]?.stringValue == "create" || (object["type"]?.stringValue == "continue" && object["previousMessageId"]?.stringValue?.isEmpty == false) else {
+            throw AIError.invalidArgument(argument: "\(argumentPrefix).thread", message: "Invalid Anthropic thread. Continue requires a nonempty previousMessageId.")
+        }
     }
     let knownOptions = options.filter { anthropicLanguageProviderOptionKeys.contains($0.key) }
     var body = anthropicOptions(from: knownOptions)
+    if let thread = options["thread"] {
+        if thread["type"]?.stringValue == "create" { body["thread"] = ["type": "create"] }
+        else { body["thread"] = ["type": "continue", "previous_message_id": thread["previousMessageId"] ?? .null] }
+    }
     body.removeValue(forKey: "anthropicBeta")
     let toolChoice = body.removeValue(forKey: "tool_choice")
     let disableParallelToolUse = options["disableParallelToolUse"]?.boolValue
@@ -113,7 +132,7 @@ func anthropicTypedOptions(from options: [String: JSONValue], argumentPrefix: St
     let sendReasoning = options["sendReasoning"]?.boolValue
     let structuredOutputMode = options["structuredOutputMode"]?.stringValue
     let betas = try anthropicBetaValues(options["anthropicBeta"], argument: "\(argumentPrefix).anthropicBeta")
-    return AnthropicMappedOptions(body: body, betas: betas, toolChoice: toolChoice, disableParallelToolUse: disableParallelToolUse, toolStreaming: toolStreaming, sendReasoning: sendReasoning, structuredOutputMode: structuredOutputMode)
+    return AnthropicMappedOptions(body: body, betas: betas, toolChoice: toolChoice, disableParallelToolUse: disableParallelToolUse, toolStreaming: toolStreaming, sendReasoning: sendReasoning, structuredOutputMode: structuredOutputMode, includePings: options["includePings"]?.boolValue)
 }
 
 func anthropicProviderOptionsName(from providerID: String) -> String {
@@ -200,6 +219,10 @@ func anthropicOptions(from extraBody: [String: JSONValue]) -> [String: JSONValue
     anthropicMoveKey("cacheControl", to: "cache_control", in: &output)
     anthropicMoveKey("inferenceGeo", to: "inference_geo", in: &output)
     anthropicMoveKey("serviceTier", to: "service_tier", in: &output)
+    if var thread = output["thread"]?.objectValue {
+        anthropicMoveKey("previousMessageId", to: "previous_message_id", in: &thread)
+        output["thread"] = .object(thread)
+    }
     anthropicMoveKey("toolChoice", to: "tool_choice", in: &output)
 
     if let thinking = output.removeValue(forKey: "thinking") {
@@ -235,6 +258,7 @@ func anthropicOptions(from extraBody: [String: JSONValue]) -> [String: JSONValue
         output["output_config"] = .object(outputConfig)
     }
 
+    output.removeValue(forKey: "includePings")
     output.removeValue(forKey: "sendReasoning")
     output.removeValue(forKey: "structuredOutputMode")
     output.removeValue(forKey: "responseFormat")
@@ -659,7 +683,7 @@ func anthropicApplyResponseFormat(
             return false
         }
         var useNativeOutputFormat = structuredOutputMode == "outputFormat"
-            || (structuredOutputMode != "jsonTool" && supportsStructuredOutput)
+            || (structuredOutputMode != "jsonTool" && supportsStructuredOutput && anthropicSupportsNativeStructuredOutputSchema(schema))
         if !useNativeOutputFormat, rejectsForcedToolUse, modelSupportsStructuredOutput, anthropicSupportsNativeStructuredOutputSchema(schema) {
             warnings.append(AIWarning(
                 type: "unsupported",
