@@ -1,5 +1,5 @@
 <!-- Generated distribution; edit the canonical repository. -->
-# swift-ai-anthropic 1.3.0
+# swift-ai-anthropic 1.4.0
 
 Independent Swift-native port of Vercel AI SDK. Source and upstream dispositions are in PROVENANCE.json and Porting/.
 
@@ -8,7 +8,7 @@ Independent Swift-native port of Vercel AI SDK. Source and upstream dispositions
 Add this package to your SwiftPM dependencies:
 
 ```swift
-.package(url: "https://github.com/SwiftAISDK/swift-ai-anthropic.git", from: "1.3.0")
+.package(url: "https://github.com/SwiftAISDK/swift-ai-anthropic.git", from: "1.4.0")
 ```
 
 Products: `SwiftAIAnthropic`.
@@ -80,6 +80,12 @@ tier is returned as `providerMetadata.anthropic.serviceTier`; request admission
 accepts `auto` or `standard_only`, with a warning for known incompatible tiers.
 Native structured output is selected automatically only when its grammar preserves
 the requested schema; open maps and recursive schemas retain the JSON-tool path.
+
+## Current provider behavior
+
+Use `provider.extractionModel("claude-sonnet-5-5")` for experimental typed field extraction with nullable answers. The Messages adapter splits more than 16 fields into parallel requests under Anthropic's schema union limit and preserves shared cancellation. The `claude-fable-5-2` model uses the same adaptive thinking and forced-tool fallback policy as 5-1; disabled/budget thinking and sampling are removed with warnings where unsupported.
+
+Dated base Fable 5 aliases remain distinct from minor versions: `claude-fable-5-20260601` follows base-5 policy, while exact or dated `claude-fable-5-2` aliases follow 5.2. This bounded matching corrects an upstream substring collision. Hosting adapters retain their structured-output settings and the documented forced-tool fallback.
 
 ## Porting and verification
 

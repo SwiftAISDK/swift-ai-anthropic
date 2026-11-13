@@ -4,9 +4,9 @@ import SwiftAITransport
 import SwiftAIProviderUtilities
 
 
-public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisionProvider, @unchecked Sendable {
+public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisionProvider, AIExtractionProvider, @unchecked Sendable {
     public let providerID = "anthropic"
-    public let supportedCapabilities: Set<ModelCapability> = [.language, .evaluation, .decision]
+    public let supportedCapabilities: Set<ModelCapability> = [.language, .evaluation, .decision, .extraction]
     private let config: AnthropicModelConfiguration
     private let languageProviderID: String
     private let skillsProviderID: String
@@ -26,7 +26,7 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             }
             headers["x-api-key"] = headers["x-api-key"] ?? key
         }
-        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.99")
+        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.104")
         headers["anthropic-version"] = headers["anthropic-version"] ?? "2023-06-01"
         languageProviderID = settings.name ?? "anthropic.messages"
         skillsProviderID = anthropicSkillsProviderID(from: languageProviderID)
@@ -54,6 +54,10 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             model: AnthropicBatchLanguageModel(modelID: modelID, config: config.withProviderID(languageProviderID)),
             providerID: anthropicEvaluationProviderID(from: languageProviderID)
         )
+    }
+
+    public func extractionModel(_ modelID: String) throws -> any AIExtractionModelV4 {
+        AIExtractionLanguageModel(model: try languageModel(modelID), providerID: String(anthropicEvaluationProviderID(from: languageProviderID).dropLast(".evaluation".count)) + ".extraction", maxFieldsPerCall: 16)
     }
 
     public func decisionModel(_ modelID: String) throws -> any AIDecisionModelV4 {

@@ -399,7 +399,9 @@ public func anthropicModelCapabilities(_ modelID: String) -> AnthropicModelCapab
     if modelID.contains("claude-opus-5") {
         return capabilities(maxOutputTokens: 128_000, supportsStructuredOutput: true, supportsAdaptiveThinking: true, rejectsSamplingParameters: true, supportsXhighEffort: true, rejectsThinkingDisabledAboveHighEffort: true, isKnownModel: true)
     }
-    if modelID.contains("claude-fable-5-1") {
+    // A dated base Fable 5 ID contains "5-2" at the start of its date.
+    // Match the complete minor alias before accepting a date/version suffix.
+    if modelID.range(of: #"claude-fable-5-(?:1|2)(?=$|[-@:.])"#, options: .regularExpression) != nil {
         return capabilities(maxOutputTokens: 128_000, supportsStructuredOutput: true, supportsAdaptiveThinking: true, rejectsSamplingParameters: true, supportsXhighEffort: true, rejectsThinkingDisabled: true, rejectsBudgetThinking: true, rejectsForcedToolUse: true, isKnownModel: true)
     }
     if modelID.contains("claude-fable-5") {

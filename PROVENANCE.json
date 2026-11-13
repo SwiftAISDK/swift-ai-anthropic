@@ -1,45 +1,46 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-anthropic",
-  "version": "1.3.0",
-  "releaseID": "weekly-upstream-20261108",
+  "version": "1.4.0",
+  "releaseID": "weekly-upstream-20261114",
   "source": {
-    "commit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
-    "baseCommit": "8e233ff96fb809445aff9a5c06bb6149a24b94da",
+    "commit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
+    "baseCommit": "07fbf86b82d83d9724bd03622e9e87e74395286f",
     "workingTree": false,
-    "inputsSHA256": "987359720075cb67dd8bc45bdc049aee4c5d5a42b67a7eb148e697ce5d18bd77"
+    "inputsSHA256": "63e472c0fe891cb7636d225e1c6467e4761dc3721be68081f2afa9f0b656bb29"
   },
   "dependencies": [
     {
       "package": "swift-ai-core",
-      "from": "1.3.0"
+      "from": "1.4.0"
     }
   ],
   "changes": [
     {
-      "id": "weekly-upstream-20261108",
-      "notes": "Add message threads, Files CRUD/download, inline tool definitions/pings and optional metadata; correct tool/schema/admission/error policies. Reviewed published upstream delta: @ai-sdk/anthropic 4.0.94 to 4.0.99. Validation passed: node Scripts/test-packages.mjs (all 52 owning packages plus the complete local facade; 3,965 reported tests and 33 explicit live skips); node Scripts/sdk.mjs dev test; node Scripts/sdk.mjs generate --check; node --test Scripts/tests/*.test.cjs (27 passed); core/provider isolation and version resolution; 52 deterministic package exports, 106 catalog consumers and four additional exact retained-minimum graphs; docs-site install/check/build (100 pages); git diff --check. No paid live-service calls were run. The publication pipeline requires successful Swift 6.3.3 CI at the exact canonical source before publishing.",
-      "compatibility": "Minor release for additive native functionality under the project convention. Existing call sites and exact old selectors are retained. Direct minimums change only for concrete API use or required inherited behavior. Version-delta review does not establish full-package parity or live-service acceptance. Updated direct ranges: swift-ai-core 1.2.0 to 1.3.0."
+      "id": "weekly-upstream-20261114",
+      "notes": "Distinguish dated base Fable 5 from genuine 5.1/5.2 aliases, retaining the original hosted JSON-tool fallback and minor-model native-output controls. Add nullable typed extraction through Messages, splitting at 16 fields with shared cancellation. Claude Fable 5.2 follows the current adaptive-thinking, sampling-warning and forced-tool fallback policies. Reviewed npm delta: @ai-sdk/anthropic 4.0.99 to 4.0.104. Validation: `node Scripts/test-packages.mjs` passed all 52 owning suites and 1731 facade tests; tooling 27/27, generation/isolation checks, standalone exports and 106 minimum/latest consumers, documentation check and 101-page build passed. Publication requires green exact-source Swift 6.3.3 CI. Paid/live verification and full-package parity are not claimed.",
+      "compatibility": "Additive native APIs or capabilities under the project minor-release convention. npm baselines and Swift SemVer are independent; this reviewed delta does not establish full-package or live-service parity. Required direct minimums: swift-ai-core 1.3.0 to 1.4.0."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-anthropic",
   "upstream": [
     {
       "name": "@ai-sdk/anthropic",
-      "reviewedVersion": "4.0.99",
+      "reviewedVersion": "4.0.104",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json",
+      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/WeeklyUpstreamAudit20261114.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-N5VA8soxdvb+eX5jKs7g+a0RahCXNnvnzT96/Hiqm+LxoLFO2U8dSYhWKrQjG1i04LM/itp8vCVl7RCn6Kvohg==",
-      "sourceRef": "npm:@ai-sdk/anthropic@4.0.99",
-      "testRef": "0f3a85f92d1ce06ccde01d662407ef83e097a712",
+      "archiveIntegrity": "sha512-8Es3QS7oeNH72O5LbeZMS+AP0Jf7bYJR80GgrOEZ0yGA6A4hnJ+QgFiIeUrzqSiVlqDTTNCk73NxXW2iwqSQuQ==",
+      "sourceRef": "npm:@ai-sdk/anthropic@4.0.104",
+      "testRef": "8bc7652cdb13fc84722666eb93f45acd0d131eee",
       "testRefRelationship": "matching-release",
       "contractFamilies": [
         "DecisionModelV4",
+        "ExtractionModelV4",
         "LanguageModelV4",
         "ProviderV4"
       ],
-      "contractReview": "2026-11-08: published declarations/source and exact matching-release changed tests reviewed; native implementations, per-file dispositions and broader retained gaps are recorded in Docs/WeeklyUpstreamAudit20261108.json. Reviewed delta is not full-package or live-service parity."
+      "contractReview": "2026-11-14: verified published source/declarations and exact matching-release changed tests reviewed separately; native ports, per-file dispositions and retained gaps are recorded in Docs/WeeklyUpstreamAudit20261114.json. Delta review is not full-package or live-service parity."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -62,11 +63,11 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Porting/map.json",
-      "sha256": "d0bebe7375f14a26fd76f7f1298ddcfb7347ac56d0fc4104bc202d5d0f1c21a4"
+      "sha256": "3ef4c74ad41138e6d6478cc06323eee593b8fe6b4f6ace402a0de3cef7ea767a"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/README.md",
-      "sha256": "57221181a5e8708f2d081465a7752163fc65692b886a2f27f0d33516e9b13e8a"
+      "sha256": "aded8bc1db6a40bfd365c12fae026a587a674fb1704961f9a3d6bffd56cedc63"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicBatchLanguageModel.swift",
@@ -86,7 +87,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicOptions.swift",
-      "sha256": "a90789a21404a5665955777a1e6690cef73e251c844609ab4b1b339494edbd44"
+      "sha256": "12ec0b2ef095275d87e9b9df6af41e2d58cf832dcf4730bd424de780f88774a2"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicParsing.swift",
@@ -94,7 +95,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicProvider.swift",
-      "sha256": "c55d2d4259cb4422bacdac31739f4c6e9628b336f0d881086445bbdb38147afd"
+      "sha256": "e6158fc96b1d842041b83c0d00dfd67d4674d5f668ea0a51f34b4867c03b07bb"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicSkills.swift",
@@ -118,7 +119,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicBatchV4UpstreamTests.swift",
-      "sha256": "7aaf31b1c77482fc1ae45ee3c33bb75f111d653995e5bd568c3039adfac26ceb"
+      "sha256": "8ea8ee43cc1d2f87000b47fb2292b4790807e3d0e08f650f93222a5c30040ee6"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",
@@ -223,6 +224,10 @@
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261108ThreadsAndTiersTests.swift",
       "sha256": "9546e90c406a8fa043dc955d9077bd434643ffe12fd5c9cfde3475a2e1ea0123"
+    },
+    {
+      "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/Weekly20261114ExtractionTests.swift",
+      "sha256": "3279e76c3b02241eb028ad16377c0fe07ee0bc7287693b1a027c763f5745d5a8"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/WeeklyAnthropic20261023Tests.swift",
