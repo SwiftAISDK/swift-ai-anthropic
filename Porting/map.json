@@ -62,6 +62,7 @@
       "Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",
       "Tests/SwiftAIAnthropicTests/AnthropicCallerMetadataUpstreamParityTests.swift",
       "Tests/SwiftAIAnthropicTests/AnthropicDeferredServerResultUpstreamTests.swift",
+      "Tests/SwiftAIAnthropicTests/AnthropicParityAuditTests.swift",
       "Tests/SwiftAIAnthropicTests/AnthropicPDFAndCapabilitiesUpstreamParityTests.swift",
       "Tests/SwiftAIAnthropicTests/AnthropicPromptConversionUpstreamParityTests.swift",
       "Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedAdvisorUpstreamParityTests.swift",

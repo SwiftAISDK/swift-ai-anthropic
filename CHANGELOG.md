@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.1
+## 1.5.0
 
-- Align the versioned request identity with the reviewed published package while retaining native open String model IDs and existing request, response, option, error, stream and telemetry behavior. Derived TypeScript model-ID/catalog reorganizations preserve the existing native runtime policies. Reviewed npm delta: @ai-sdk/anthropic 4.0.104 to 4.0.105. Validation passed: node Scripts/test-packages.mjs (55 owning packages, 2451 owning tests and 1736 compatibility tests), generation checks, 27 tooling tests, isolation/version checks, deterministic exports and minimum-dependency consumers. Documentation check/build passed (104 pages). Publication is gated by exact-source Swift 6.3.3 CI; subsequent public refs and clients are recorded in Docs/ReleaseVerification20261115.json. Paid/live-service checks were not run; this delta does not claim full-package parity.
-  Compatibility: Compatible versioned request identity correction; existing public selectors and dependency minimums remain. npm baselines and Swift SemVer are independent.
+- Thinking without `maxOutputTokens` sends the model maximum plus the budget instead of 1024 plus the budget. Redacted reasoning is replayed as `redacted_thinking`, unsigned reasoning is dropped with a warning, citations are replayed and empty blocks are no longer produced. Warnings follow upstream order and number formatting; skill provider references resolve to `skill_id`; streams report message ID and model; empty credentials count as absent.
+  Compatibility: Source-compatible; changes are additive. Request bodies, results, warnings and errors change to match the reviewed upstream package.

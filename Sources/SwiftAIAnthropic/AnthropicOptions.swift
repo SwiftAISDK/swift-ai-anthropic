@@ -87,7 +87,15 @@ func anthropicOptions(from request: LanguageModelRequest, providerID: String) th
             throw AIError.invalidArgument(argument: "providerOptions.\(providerOptionsName)", message: "Anthropic provider options must be an object.")
         }
         let typed = try anthropicTypedOptions(from: nested, argumentPrefix: "providerOptions.\(providerOptionsName)")
-        output.merge(typed.body) { _, typed in typed }
+        // Upstream merges the canonical and custom options with `Object.assign`
+        // before mapping, so `effort` and `taskBudget` from different namespaces
+        // both survive in `output_config`.
+        var customBody = typed.body
+        if let canonicalConfig = output["output_config"]?.objectValue,
+           let customConfig = customBody["output_config"]?.objectValue {
+            customBody["output_config"] = .object(canonicalConfig.merging(customConfig) { _, custom in custom })
+        }
+        output.merge(customBody) { _, typed in typed }
         betas.append(contentsOf: typed.betas)
         toolChoice = typed.toolChoice ?? toolChoice
         disableParallelToolUse = typed.disableParallelToolUse ?? disableParallelToolUse
@@ -121,6 +129,23 @@ func anthropicTypedOptions(from options: [String: JSONValue], argumentPrefix: St
     }
     let knownOptions = options.filter { anthropicLanguageProviderOptionKeys.contains($0.key) }
     var body = anthropicOptions(from: knownOptions)
+    if let thinking = options["thinking"], thinking != .null {
+        body["thinking"] = anthropicTypedThinking(thinking)
+    }
+    if let metadata = options["metadata"], metadata != .null {
+        if let userID = metadata["userId"], userID != .null {
+            body["metadata"] = ["user_id": userID]
+        } else {
+            body.removeValue(forKey: "metadata")
+        }
+    }
+    if let container = options["container"]?.objectValue {
+        if let mapped = try anthropicTypedContainer(container) {
+            body["container"] = mapped
+        } else {
+            body.removeValue(forKey: "container")
+        }
+    }
     if let thread = options["thread"] {
         if thread["type"]?.stringValue == "create" { body["thread"] = ["type": "create"] }
         else { body["thread"] = ["type": "continue", "previous_message_id": thread["previousMessageId"] ?? .null] }
@@ -133,6 +158,55 @@ func anthropicTypedOptions(from options: [String: JSONValue], argumentPrefix: St
     let structuredOutputMode = options["structuredOutputMode"]?.stringValue
     let betas = try anthropicBetaValues(options["anthropicBeta"], argument: "\(argumentPrefix).anthropicBeta")
     return AnthropicMappedOptions(body: body, betas: betas, toolChoice: toolChoice, disableParallelToolUse: disableParallelToolUse, toolStreaming: toolStreaming, sendReasoning: sendReasoning, structuredOutputMode: structuredOutputMode, includePings: options["includePings"]?.boolValue)
+}
+
+/// Maps the `thinking` option like the upstream discriminated union: fields that
+/// belong to another thinking type are dropped instead of forwarded.
+func anthropicTypedThinking(_ value: JSONValue) -> JSONValue {
+    guard let object = value.objectValue else { return value }
+    var mapped: [String: JSONValue] = [:]
+    let type = object["type"]?.stringValue
+    if let type { mapped["type"] = .string(type) }
+    if type == "enabled", let budget = object["budgetTokens"] ?? object["budget_tokens"], budget != .null {
+        mapped["budget_tokens"] = budget
+    }
+    if type == "adaptive", let display = object["display"], display != .null {
+        mapped["display"] = display
+    }
+    if type == "adaptive" || type == nil,
+       let binding = (object["blockBinding"] ?? object["block_binding"])?.objectValue {
+        var mappedBinding: [String: JSONValue] = [:]
+        if let behavior = binding["prefixMismatchBehavior"] ?? binding["prefix_mismatch_behavior"] {
+            mappedBinding["prefix_mismatch_behavior"] = behavior
+        }
+        mapped["block_binding"] = .object(mappedBinding)
+    }
+    return .object(mapped)
+}
+
+/// Maps the `container` option like upstream: skills become `{ id, skills }` with custom
+/// skill provider references resolved for `anthropic`; otherwise only the ID string is sent.
+func anthropicTypedContainer(_ container: [String: JSONValue]) throws -> JSONValue? {
+    if let skills = container["skills"]?.arrayValue, !skills.isEmpty {
+        var mapped: [String: JSONValue] = [:]
+        if let id = container["id"], id != .null { mapped["id"] = id }
+        mapped["skills"] = .array(try skills.map { skill in
+            var mappedSkill: [String: JSONValue] = [:]
+            if let type = skill["type"] { mappedSkill["type"] = type }
+            if skill["type"]?.stringValue == "custom" {
+                let reference = (skill["providerReference"]?.objectValue ?? [:])
+                    .compactMapValues(\.stringValue)
+                mappedSkill["skill_id"] = .string(try resolveProviderReference(reference, provider: "anthropic"))
+            } else if let skillID = skill["skillId"] ?? skill["skill_id"] {
+                mappedSkill["skill_id"] = skillID
+            }
+            if let version = skill["version"], version != .null { mappedSkill["version"] = version }
+            return .object(mappedSkill)
+        })
+        return .object(mapped)
+    }
+    if let id = container["id"], id != .null { return id }
+    return nil
 }
 
 func anthropicProviderOptionsName(from providerID: String) -> String {
@@ -445,45 +519,70 @@ func anthropicSamplingParameters(
     temperatureProvider: String = "anthropic",
     warnings: inout [AIWarning]
 ) -> (temperature: Double?, topK: Int?, topP: Double?) {
-    if capabilities.rejectsSamplingParameters {
-        if request.temperature != nil {
-            warnings.append(AIWarning(
-                type: "unsupported",
-                feature: "temperature",
-                message: "temperature is not supported by \(modelID) and will be ignored"
-            ))
-        }
-        if request.topK != nil {
-            warnings.append(AIWarning(
-                type: "unsupported",
-                feature: "topK",
-                message: "topK is not supported by \(modelID) and will be ignored"
-            ))
-        }
-        if request.topP != nil {
-            warnings.append(AIWarning(
-                type: "unsupported",
-                feature: "topP",
-                message: "topP is not supported by \(modelID) and will be ignored"
-            ))
-        }
-        return (nil, nil, nil)
-    }
-
-    return (
-        anthropicClampedTemperature(request.temperature, maximum: maxTemperature, provider: temperatureProvider, warnings: &warnings),
-        request.topK,
-        request.topP
+    // Upstream clamps the temperature first and only then drops sampling
+    // parameters for models that reject them (both warnings are reported).
+    let temperature = anthropicClampedTemperature(request.temperature, maximum: maxTemperature, provider: temperatureProvider, warnings: &warnings)
+    return anthropicRejectingSamplingParameters(
+        temperature: temperature,
+        topK: request.topK,
+        topP: request.topP,
+        modelID: modelID,
+        capabilities: capabilities,
+        warnings: &warnings
     )
+}
+
+func anthropicRejectingSamplingParameters(
+    temperature: Double?,
+    topK: Int?,
+    topP: Double?,
+    modelID: String,
+    capabilities: AnthropicModelCapabilities,
+    warnings: inout [AIWarning]
+) -> (temperature: Double?, topK: Int?, topP: Double?) {
+    guard capabilities.rejectsSamplingParameters else {
+        return (temperature, topK, topP)
+    }
+    if temperature != nil {
+        warnings.append(AIWarning(
+            type: "unsupported",
+            feature: "temperature",
+            message: "temperature is not supported by \(modelID) and will be ignored"
+        ))
+    }
+    if topK != nil {
+        warnings.append(AIWarning(
+            type: "unsupported",
+            feature: "topK",
+            message: "topK is not supported by \(modelID) and will be ignored"
+        ))
+    }
+    if topP != nil {
+        warnings.append(AIWarning(
+            type: "unsupported",
+            feature: "topP",
+            message: "topP is not supported by \(modelID) and will be ignored"
+        ))
+    }
+    return (nil, nil, nil)
+}
+
+/// Formats a number like JavaScript string interpolation (`2`, `1.5`).
+func anthropicJavaScriptNumber(_ value: Double) -> String {
+    if value.isFinite, value.rounded() == value, abs(value) < 1e15 {
+        return String(Int64(value))
+    }
+    return "\(value)"
 }
 
 func anthropicClampedTemperature(_ temperature: Double?, maximum: Double = 1, provider: String = "anthropic", warnings: inout [AIWarning]) -> Double? {
     guard let temperature else { return nil }
+    let fixedMaximum = String(format: "%.1f", maximum)
     if temperature > maximum {
         warnings.append(AIWarning(
             type: "unsupported",
             feature: "temperature",
-            message: "\(temperature) exceeds \(provider) maximum of \(maximum). clamped to \(maximum)"
+            message: "\(anthropicJavaScriptNumber(temperature)) exceeds \(provider) maximum of \(fixedMaximum). clamped to \(fixedMaximum)"
         ))
         return maximum
     }
@@ -491,7 +590,7 @@ func anthropicClampedTemperature(_ temperature: Double?, maximum: Double = 1, pr
         warnings.append(AIWarning(
             type: "unsupported",
             feature: "temperature",
-            message: "\(temperature) is below \(provider) minimum of 0. clamped to 0"
+            message: "\(anthropicJavaScriptNumber(temperature)) is below \(provider) minimum of 0. clamped to 0"
         ))
         return 0
     }
@@ -677,11 +776,7 @@ func anthropicApplyResponseFormat(
         return false
     case let .json(schema, _, _):
         guard let schema else {
-            warnings.append(AIWarning(
-                type: "unsupported",
-                feature: "responseFormat",
-                message: "JSON response format requires a schema. The response format is ignored."
-            ))
+            // The missing-schema warning is reported by the request builder.
             return false
         }
         var useNativeOutputFormat = structuredOutputMode == "outputFormat"
@@ -714,7 +809,7 @@ func anthropicApplyResponseFormat(
                 "type": .string(rejectsForcedToolUse || body["thinking"]?["type"]?.stringValue == "enabled" ? "auto" : "any"),
                 "disable_parallel_tool_use": true
             ])
-            if body["thinking"]?["type"]?.stringValue == "enabled" {
+            if rejectsForcedToolUse || body["thinking"]?["type"]?.stringValue == "enabled" {
                 warnings.append(AIWarning(
                     type: "unsupported",
                     feature: "toolChoice",
@@ -936,7 +1031,10 @@ func applyAnthropicThinkingRules(
 
     if type == "enabled" {
         let budget = thinking["budget_tokens"]?.intValue ?? 1024
-        body["max_tokens"] = .number(Double((requestedMaxTokens ?? 1024) + budget))
+        // Upstream adds the budget to `maxOutputTokens ?? model maximum`, which is
+        // the `max_tokens` value already in the body.
+        let baseMaxTokens = requestedMaxTokens ?? body["max_tokens"]?.intValue ?? 1024
+        body["max_tokens"] = .number(Double(baseMaxTokens + budget))
     }
 }
 

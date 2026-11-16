@@ -683,12 +683,15 @@ func anthropicStreamError(from raw: JSONValue, provider: String, headers: [Strin
         failure.message = error.message
         return .apiCall(failure)
     }
-    return .apiCall(
+    // Upstream uses `isRetryable ?? false` for the startup error, so an
+    // unrecognized error type is not retried even though it reports status 500.
+    return .apiCall(AIAPICallError(
         provider: provider,
         statusCode: error.statusCode ?? 500,
-        body: error.message,
-        headers: headers
-    )
+        responseHeaders: headers,
+        responseBody: error.message,
+        isRetryable: error.isRetryable
+    ))
 }
 
 public func anthropicStreamProviderError(from raw: JSONValue) -> AIStreamProviderError? {

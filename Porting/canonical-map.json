@@ -63,6 +63,7 @@
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicCallerMetadataUpstreamParityTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicDeferredServerResultUpstreamTests.swift",
+      "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicParityAuditTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicPDFAndCapabilitiesUpstreamParityTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicPromptConversionUpstreamParityTests.swift",
       "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicProviderExecutedAdvisorUpstreamParityTests.swift",

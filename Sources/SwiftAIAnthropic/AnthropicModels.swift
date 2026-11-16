@@ -452,7 +452,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                         continuation.yield(part)
                     }
                     emit(.requestMetadata(AIRequestMetadata(body: .object(body), headers: request.headers, url: httpRequest.url.absoluteString)))
-                    emit(.responseMetadata(aiResponseMetadata(response: responseHead, modelID: modelID)))
+                    let initialResponseMetadata = aiResponseMetadata(response: responseHead, modelID: modelID)
+                    emit(.responseMetadata(initialResponseMetadata))
                     emit(.streamStart(warnings: preparedRequest.warnings))
                     var contentBlocks = AnthropicStreamingContentBlocks(
                         providerID: providerID,
@@ -548,6 +549,14 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                                 rawUsage = usage
                                 finishUsage = anthropicTokenUsage(from: usage)
                             }
+                            // Upstream reports the message ID and response model as
+                            // `response-metadata` when each message starts.
+                            emit(.responseMetadata(AIResponseMetadata(
+                                id: messageID,
+                                timestamp: initialResponseMetadata.timestamp,
+                                modelID: raw["message"]?["model"]?.stringValue ?? modelID,
+                                headers: initialResponseMetadata.headers
+                            )))
                             emit(.custom(
                                 ["kind": "anthropic.message_start"],
                                 providerMetadata: ["anthropic": .object([
@@ -690,11 +699,52 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         policy: AnthropicRequestPolicy = .init()
     ) throws -> AnthropicPreparedCall {
         var betas: [String] = []
+        // Warnings are assembled in the upstream `prepareRequest` order:
+        // settings, prompt, thread, reasoning/thinking, tool and finally cache warnings.
         var warnings = anthropicStandardWarnings(for: request)
         var reasoningWarnings: [AIWarning] = []
         let request = try policy.prepareRequest?(request, modelID, &reasoningWarnings) ?? request
+        let clampedTemperature = anthropicClampedTemperature(
+            request.temperature,
+            maximum: policy.maximumTemperature,
+            provider: policy.metadataNamespace,
+            warnings: &warnings
+        )
+        if case .json(nil, _, _) = request.responseFormat {
+            warnings.append(AIWarning(
+                type: "unsupported",
+                feature: "responseFormat",
+                message: "JSON response format requires a schema. The response format is ignored."
+            ))
+        }
         let providerOptions = try anthropicOptions(from: request, providerID: providerID)
+        let optionNamespace = anthropicProviderOptionsName(from: providerID)
+        var unsupportedServiceTier = false
+        if let tier = providerOptions.body["service_tier"]?.stringValue,
+           let supportedTiers = optionNamespace == "anthropic" ? ["auto", "standard_only"] : (optionNamespace == "minimax" ? ["standard", "priority"] : nil),
+           !supportedTiers.contains(tier) {
+            unsupportedServiceTier = true
+            warnings.append(AIWarning(type: "unsupported", feature: "serviceTier", message: "serviceTier \"\(tier)\" is not supported by \(optionNamespace). Use \(supportedTiers.map { "\"\($0)\"" }.joined(separator: " or "))."))
+        }
         let capabilities = anthropicModelCapabilities(modelID)
+        if request.maxOutputTokens == nil, !capabilities.isKnownModel {
+            warnings.append(AIWarning(
+                type: "compatibility",
+                feature: "maxOutputTokens",
+                message: "The model \"\(modelID)\" is unknown. The max output tokens have been limited to \(capabilities.maxOutputTokens). Set maxOutputTokens explicitly to override this limit."
+            ))
+        }
+        let sampling = anthropicRejectingSamplingParameters(
+            temperature: clampedTemperature,
+            topK: request.topK,
+            topP: request.topP,
+            modelID: modelID,
+            capabilities: capabilities,
+            warnings: &warnings
+        )
+        // Response-format warnings (structured output fallback, parallel tool use)
+        // are computed with the tools but reported here, before prompt warnings.
+        let responseFormatWarningIndex = warnings.count
         let supportsStructuredOutput = capabilities.supportsStructuredOutput && (supportsNativeStructuredOutput ?? true)
         let supportsStrictToolDefinitions = capabilities.supportsStructuredOutput && (supportsStrictTools ?? true)
         let thread = providerOptions.body["thread"]
@@ -719,22 +769,17 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             betas: &betas,
             warnings: &warnings
         )
-
-        if request.maxOutputTokens == nil, !capabilities.isKnownModel {
-            warnings.append(AIWarning(
-                type: "compatibility",
-                feature: "maxOutputTokens",
-                message: "The model \"\(modelID)\" is unknown. The max output tokens have been limited to \(capabilities.maxOutputTokens). Set maxOutputTokens explicitly to override this limit."
-            ))
+        if let thread {
+            let pinned = Set(providerOptions.betas + (normalizeHeaders(request.headers)["anthropic-beta"]?.split(separator: ",").map(String.init) ?? []))
+            let unpinned = betas.filter { !pinned.contains($0) }
+            if !unpinned.isEmpty {
+                warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Message content enabled beta headers: \(unpinned.joined(separator: ", ")). Thread requests require the same beta set on every turn. Pin these values with anthropicBeta on every request, or start a new thread when the set changes."))
+            }
+            if thread["type"]?.stringValue == "continue", !prompt.system.isEmpty || !request.tools.isEmpty {
+                warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Continuation uses the system prompt and tool definitions stored by the create request; supplied definitions are omitted from the wire request. Supply identical tools for local tool handling and fixed request settings. To change system instructions or tools, start a new thread."))
+            }
         }
-        let sampling = anthropicSamplingParameters(
-            for: request,
-            modelID: modelID,
-            capabilities: capabilities,
-            maxTemperature: policy.maximumTemperature,
-            temperatureProvider: policy.metadataNamespace,
-            warnings: &warnings
-        )
+
         var body: [String: JSONValue] = [
             "model": .string(modelID),
             "messages": .array(prompt.messages),
@@ -748,12 +793,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         if !request.stopSequences.isEmpty { body["stop_sequences"] = .array(request.stopSequences) }
         let eagerInputStreaming = stream && (providerOptions.toolStreaming ?? true)
         body.merge(providerOptions.body) { _, new in new }
-        let optionNamespace = anthropicProviderOptionsName(from: providerID)
-        if let tier = body["service_tier"]?.stringValue,
-           let supportedTiers = optionNamespace == "anthropic" ? ["auto", "standard_only"] : (optionNamespace == "minimax" ? ["standard", "priority"] : nil),
-           !supportedTiers.contains(tier) {
+        if unsupportedServiceTier {
             body.removeValue(forKey: "service_tier")
-            warnings.append(AIWarning(type: "unsupported", feature: "serviceTier", message: "serviceTier \"\(tier)\" is not supported by \(optionNamespace). Use \(supportedTiers.joined(separator: " or "))."))
         }
         if body["context_management"] != nil, body["compaction"] != nil {
             throw AIError.invalidArgument(
@@ -811,7 +852,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         if let toolChoice = preparedTools.toolChoice {
             body["tool_choice"] = toolChoice
         }
-        warnings.append(contentsOf: preparedTools.warnings)
+        var responseFormatWarnings: [AIWarning] = []
         let usesJSONToolResponseFormat = anthropicApplyResponseFormat(
             request.responseFormat,
             to: &body,
@@ -822,19 +863,18 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             modelID: modelID,
             disableParallelToolUse: providerOptions.disableParallelToolUse,
             eagerInputStreaming: eagerInputStreaming,
-            warnings: &warnings
+            warnings: &responseFormatWarnings
         )
+        // The JSON tool's tool-choice fallback is a prepareTools warning upstream;
+        // the other response-format warnings precede the prompt warnings.
+        warnings.insert(
+            contentsOf: responseFormatWarnings.filter { $0.feature != "toolChoice" },
+            at: responseFormatWarningIndex
+        )
+        let toolWarnings = preparedTools.warnings + responseFormatWarnings.filter { $0.feature == "toolChoice" }
         try anthropicValidateInlineToolChoice(messages: prompt.messages, sourceMessages: request.messages, tools: request.tools, toolChoice: requestedToolChoice, actualToolChoice: body["tool_choice"], usesJSONResponseTool: usesJSONToolResponseFormat, mapping: toolNameMapping, body: &body)
         if let thread {
-            let pinned = Set(providerOptions.betas + (normalizeHeaders(request.headers)["anthropic-beta"]?.split(separator: ",").map(String.init) ?? []))
-            let unpinned = betas.filter { !pinned.contains($0) }
-            if !unpinned.isEmpty {
-                warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Message content enabled beta headers: \(unpinned.joined(separator: ", ")). Thread requests require the same beta set on every turn. Pin these values with anthropicBeta on every request, or start a new thread when the set changes."))
-            }
             if thread["type"]?.stringValue == "continue" {
-                if body["system"] != nil || !request.tools.isEmpty {
-                    warnings.append(AIWarning(type: "compatibility", feature: "providerOptions.anthropic.thread", message: "Continuation uses the system prompt and tool definitions stored by the create request; supplied definitions are omitted from the wire request. Supply identical tools for local tool handling and fixed request settings. To change system instructions or tools, start a new thread."))
-                }
                 body.removeValue(forKey: "system")
                 body.removeValue(forKey: "tools")
             }
@@ -856,7 +896,11 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             capabilities: capabilities,
             warnings: &warnings
         )
-        if anthropicContainerHasSkills(body), !preparedTools.hasCodeExecution {
+        let declaresSkillCodeExecution = request.tools.values.contains { tool in
+            let id = tool["id"]?.stringValue
+            return id == "anthropic.code_execution_20250825" || id == "anthropic.code_execution_20260120"
+        }
+        if anthropicContainerHasSkills(body), !declaresSkillCodeExecution {
             warnings.append(AIWarning(
                 type: "other",
                 message: "code execution tool is required when using skills"
@@ -868,7 +912,12 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         for beta in preparedTools.betas where !betas.contains(beta) {
             betas.append(beta)
         }
+        warnings.append(contentsOf: toolWarnings)
         warnings.append(contentsOf: reasoningWarnings)
+        // Cache-control validator warnings are reported last, like upstream.
+        let cacheWarningFeatures: Set<String> = ["cacheControl breakpoint limit", "cache_control on non-cacheable context"]
+        warnings = warnings.filter { !cacheWarningFeatures.contains($0.feature ?? "") }
+            + warnings.filter { cacheWarningFeatures.contains($0.feature ?? "") }
         return AnthropicPreparedCall(
             body: body,
             betas: betas,
@@ -903,6 +952,7 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
         var conversation: [JSONValue] = []
         var lastUserMessageIndex = -1
         var warnedAboutInitialToolChanges = false
+        var separatesUserBlocks = false
         for message in messages {
             let toolChanges = message.role == .system
                 ? try anthropicToolChanges(from: message.providerMetadata)
@@ -1001,15 +1051,24 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             }
             if message.role == .assistant,
                converted["content"]?.arrayValue?.isEmpty == true {
+                // Upstream still has an (empty) assistant block here, so the user
+                // messages around it stay separate instead of being combined.
+                separatesUserBlocks = true
                 continue
             }
+            let startsNewUserBlock = separatesUserBlocks && message.role != .assistant
+            if message.role != .system { separatesUserBlocks = false }
             if message.role == .user, !message.content.isEmpty {
-                lastUserMessageIndex = conversation.last?["role"]?.stringValue == "user" ? conversation.count - 1 : conversation.count
+                lastUserMessageIndex = !startsNewUserBlock && conversation.last?["role"]?.stringValue == "user" ? conversation.count - 1 : conversation.count
             }
-            appendAnthropicMessage(
-                converted,
-                to: &conversation
-            )
+            if startsNewUserBlock {
+                conversation.append(converted)
+            } else {
+                appendAnthropicMessage(
+                    converted,
+                    to: &conversation
+                )
+            }
         }
         anthropicNormalizeHistoricalCallers(in: &conversation, before: lastUserMessageIndex, warnings: &warnings)
         trimTrailingAssistantWhitespace(in: &conversation)
@@ -1117,7 +1176,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
               let text = lastPart["text"]?.stringValue else {
             return
         }
-        lastPart["text"] = .string(text.replacingOccurrences(of: #"\s+$"#, with: "", options: .regularExpression))
+        // Upstream uses `String.prototype.trim()` on the final prefill text part.
+        lastPart["text"] = .string(text.trimmingCharacters(in: .whitespacesAndNewlines))
         content[content.count - 1] = .object(lastPart)
         message["content"] = .array(content)
         conversation[conversation.count - 1] = .object(message)
@@ -1177,6 +1237,15 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                     warnings: &warnings
                 )
             }
+            if message.role == .assistant {
+                switch part {
+                case .imageURL, .data, .file, .providerReference:
+                    // Upstream assistant messages only replay text, reasoning, tool and fallback parts.
+                    return nil
+                default:
+                    break
+                }
+            }
             switch part {
             case let .text(text, providerMetadata):
                 if message.role == .assistant && text.isEmpty { return nil }
@@ -1184,19 +1253,31 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                 let metadata = providerMetadata[providerKey] ?? providerMetadata["anthropic"]
                 if metadata?["type"]?.stringValue == "compaction" {
                     guard !text.isEmpty else { return nil }
-                    if !betas.contains("compact-2026-09-04") {
-                        betas.append("compact-2026-09-04")
-                    }
                     var block: [String: JSONValue] = [
                         "type": .string("compaction"),
                         "content": .string(text)
                     ]
+                    // Upstream only adds the compaction beta for signed compaction blocks.
                     if let signature = metadata?["signature"]?.stringValue {
                         block["signature"] = .string(signature)
+                        if !betas.contains("compact-2026-09-04") {
+                            betas.append("compact-2026-09-04")
+                        }
                     }
+                    anthropicApplyCacheControl(
+                        anthropicCacheControl(from: providerMetadata, namespace: cacheNamespace),
+                        to: &block,
+                        cacheBreakpointCount: &cacheBreakpointCount,
+                        warnings: &warnings
+                    )
                     return .object(block)
                 }
                 var block: [String: JSONValue] = ["type": .string("text"), "text": .string(text)]
+                // Assistant text replays its citations (e.g. encrypted web search indexes).
+                if message.role == .assistant,
+                   let citations = providerMetadata["anthropic"]?["citations"], citations != .null {
+                    block["citations"] = citations
+                }
                 anthropicApplyPartProviderOptions(
                     providerMetadata,
                     to: &block,
@@ -1210,9 +1291,16 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                     return nil
                 }
                 if sendReasoning {
-                    var block: [String: JSONValue] = ["type": .string("thinking"), "thinking": .string(reasoning)]
+                    // Upstream replays signed reasoning as `thinking`, redacted reasoning as
+                    // `redacted_thinking`, and drops reasoning without either with a warning.
+                    var block: [String: JSONValue]
                     if let signature = providerMetadata["anthropic"]?["signature"]?.stringValue {
-                        block["signature"] = .string(signature)
+                        block = ["type": .string("thinking"), "thinking": .string(reasoning), "signature": .string(signature)]
+                    } else if let redactedData = providerMetadata["anthropic"]?["redactedData"]?.stringValue {
+                        block = ["type": .string("redacted_thinking"), "data": .string(redactedData)]
+                    } else {
+                        warnings.append(AIWarning(type: "other", message: "unsupported reasoning metadata"))
+                        return nil
                     }
                     anthropicApplyCacheControl(
                         anthropicCacheControl(from: providerMetadata, namespace: cacheNamespace),
@@ -1439,7 +1527,8 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
                 }
                 return marker
             case .reasoningFile, .toolApprovalRequest, .toolApprovalResponse:
-                return .object(["type": .string("text"), "text": .string("")])
+                // Upstream skips these parts instead of sending an empty text block.
+                return nil
             }
         }
         if message.role == .assistant {
@@ -1632,14 +1721,19 @@ public final class AnthropicLanguageModel: LanguageModel, @unchecked Sendable {
             if !betas.contains("pdfs-2024-09-25") {
                 betas.append("pdfs-2024-09-25")
             }
-            return .object([
+            var block: [String: JSONValue] = [
                 "type": .string("document"),
                 "source": .object([
                     "type": .string("base64"),
-                    "media_type": .string(resolvedMimeType),
+                    "media_type": .string("application/pdf"),
                     "data": .string(data.base64EncodedString())
                 ])
-            ])
+            ]
+            // Upstream uses the filename as the PDF document title (`metadata.title ?? filename`).
+            if let filename {
+                block["title"] = .string(filename)
+            }
+            return .object(block)
         }
         if lowercasedMimeType == "text/plain" {
             var block: [String: JSONValue] = [

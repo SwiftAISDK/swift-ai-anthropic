@@ -12,12 +12,14 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
     private let skillsProviderID: String
 
     public init(configuration settings: AnthropicProviderSettings) throws {
-        if settings.apiKey != nil, settings.authToken != nil || settings.authTokenProvider != nil {
+        // Upstream checks truthiness, so empty strings do not count as provided credentials.
+        let authToken = settings.authToken.flatMap { $0.isEmpty ? nil : $0 }
+        if settings.apiKey?.isEmpty == false, authToken != nil || settings.authTokenProvider != nil {
             throw AIError.invalidArgument(argument: "apiKey/authToken", message: "Both apiKey and authToken were provided. Please use only one authentication method.")
         }
         let credentialResolver = settings.authTokenProvider.map(AIAsyncCredential.init)
         var headers = normalizeHeaders(settings.headers)
-        if let authToken = credentialResolver?.placeholder ?? settings.authToken {
+        if let authToken = credentialResolver?.placeholder ?? authToken {
             headers["authorization"] = headers["authorization"] ?? "Bearer \(authToken)"
         } else {
             let key = settings.apiKey ?? settings.environmentValue(["ANTHROPIC_API_KEY"])
