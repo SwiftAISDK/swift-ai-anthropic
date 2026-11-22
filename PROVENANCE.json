@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "package": "swift-ai-anthropic",
-  "version": "1.5.0",
-  "releaseID": "upstream-parity-20261116",
+  "version": "1.5.1",
+  "releaseID": "weekly-upstream-20261122",
   "source": {
-    "commit": "1c457dea36be42376a6853aecd5c48ffc4942178",
-    "baseCommit": "1c457dea36be42376a6853aecd5c48ffc4942178",
+    "commit": "73e28c7d4106338c3030bc36700c5922aeb2ebd9",
+    "baseCommit": "73e28c7d4106338c3030bc36700c5922aeb2ebd9",
     "workingTree": false,
-    "inputsSHA256": "d7b8f52add7828d7e9ed20418fe072e7db03e75483a168bb7f5c34e9d2a04a13"
+    "inputsSHA256": "5b64cfae284ecf9a081f1c08d5b5dff83915b3c57b62669a3408e51a52961cb5"
   },
   "dependencies": [
     {
@@ -17,22 +17,22 @@
   ],
   "changes": [
     {
-      "id": "upstream-parity-20261116",
-      "notes": "Thinking without `maxOutputTokens` sends the model maximum plus the budget instead of 1024 plus the budget. Redacted reasoning is replayed as `redacted_thinking`, unsigned reasoning is dropped with a warning, citations are replayed and empty blocks are no longer produced. Warnings follow upstream order and number formatting; skill provider references resolve to `skill_id`; streams report message ID and model; empty credentials count as absent.",
-      "compatibility": "Source-compatible; changes are additive. Request bodies, results, warnings and errors change to match the reviewed upstream package."
+      "id": "weekly-upstream-20261122",
+      "notes": "Align the provider request identity with @ai-sdk/anthropic 4.0.107 after comparing source, declarations and matching-release tests against 4.0.105. Offline validation passed: node Scripts/test-packages.mjs (56 packages, 3672 owning tests and 1760 compatibility tests), generation, tooling, isolation, and version selection. See Docs/Archive/WeeklyUpstreamAudit20261122.md for retained gaps. Paid provider calls were skipped.",
+      "compatibility": "Source-compatible request-header update."
     }
   ],
   "canonicalDirectory": "Packages/swift-ai-anthropic",
   "upstream": [
     {
       "name": "@ai-sdk/anthropic",
-      "reviewedVersion": "4.0.105",
+      "reviewedVersion": "4.0.107",
       "ledgerKind": "provider",
-      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/Archive/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/Archive/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/Archive/WeeklyUpstreamAudit20261114.json; 2026-11-15 delta: Docs/Archive/WeeklyUpstreamAudit20261115.json",
+      "evidence": "`AIProviders.anthropic`, `AnthropicLanguageModel`, `AnthropicBatchLanguageModel`, `AnthropicTools`, `AnthropicTests.swift`, `AnthropicBatchV4UpstreamTests.swift`, `AnthropicBedrockUpstream202609Tests.swift`; 2026-11-01 delta: Docs/Archive/WeeklyUpstreamAudit20261101.json; 2026-11-08 delta: Docs/Archive/WeeklyUpstreamAudit20261108.json; 2026-11-14 delta: Docs/Archive/WeeklyUpstreamAudit20261114.json; 2026-11-15 delta: Docs/Archive/WeeklyUpstreamAudit20261115.json; 2026-11-22 delta: Docs/Archive/WeeklyUpstreamAudit20261122.json",
       "reviewStatus": "imported-reviewed-with-gaps",
-      "archiveIntegrity": "sha512-i6kmv6y+FGTBxOPtLRrb5I+92WcFFGubhd33CD0JeaSyFOnLJ8my4a9olkAgyR9fACHMzxFBmoEHd0uO4i72bA==",
-      "sourceRef": "npm:@ai-sdk/anthropic@4.0.105",
-      "testRef": "0e8e0543aeda7d4dd4ce6eade0d5b7d5a43644c1",
+      "archiveIntegrity": "sha512-7morlNCmT6Qt3Af/QgxAGaeAUXu+W3LvGIvtxL+P8jRs+5Sq7kfH9A8M8FCB9wibzuhDqtLdy6I8tb9qJqGOug==",
+      "sourceRef": "npm:@ai-sdk/anthropic@4.0.107",
+      "testRef": "3dad57f204c7332178d28c3467c7311875b66a3e",
       "testRefRelationship": "matching-release",
       "contractFamilies": [
         "DecisionModelV4",
@@ -40,7 +40,7 @@
         "LanguageModelV4",
         "ProviderV4"
       ],
-      "contractReview": "2026-11-15: published source/declarations and exact matching-release tests reviewed separately. Native delta scenarios, per-file dispositions, unchanged-catalog evidence and explicit remaining gaps are recorded in Docs/Archive/WeeklyUpstreamAudit20261115.json. Required checks remain a separate gate; no full-package/live-service parity claim."
+      "contractReview": "2026-11-22: reviewed the published source and declarations and the matching-release test diffs. Native evidence and explicitly retained coverage gaps are in Docs/Archive/WeeklyUpstreamAudit20261122.json."
     }
   ],
   "note": "Independent port. Imported test refs and contract review gaps retain their original status; export is not new upstream parity proof.",
@@ -95,7 +95,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicProvider.swift",
-      "sha256": "13fd68d94ee8aaa5231682deae33f0fa446c10c22f45308acbaeda98eb32b257"
+      "sha256": "6a97659189b18abf45ee43bcb2033008df56a72113bd28e2787034d2d5c9dd19"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Sources/SwiftAIAnthropic/AnthropicSkills.swift",
@@ -119,7 +119,7 @@
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicBatchV4UpstreamTests.swift",
-      "sha256": "482befe964c13f0cfd626c367b9b8edbf7da815e6bcdb73107691c58fb5322fd"
+      "sha256": "67c646cb66b2a4faed6c2654a06855dedfb8095592e74c89229c40b1e234fc68"
     },
     {
       "canonicalPath": "Packages/swift-ai-anthropic/Tests/SwiftAIAnthropicTests/AnthropicCacheControlUpstreamParityTests.swift",

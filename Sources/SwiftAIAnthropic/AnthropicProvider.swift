@@ -28,7 +28,7 @@ public final class AnthropicProvider: AIProvider, AIEvaluationProvider, AIDecisi
             }
             headers["x-api-key"] = headers["x-api-key"] ?? key
         }
-        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.105")
+        headers = withUserAgentSuffix(headers, "ai-sdk-anthropic/4.0.107")
         headers["anthropic-version"] = headers["anthropic-version"] ?? "2023-06-01"
         languageProviderID = settings.name ?? "anthropic.messages"
         skillsProviderID = anthropicSkillsProviderID(from: languageProviderID)
